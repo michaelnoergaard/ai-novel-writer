@@ -1,0 +1,8 @@
+# AI Story Writer - Version 1 Dependencies (Latest versions)
+pydantic
+openai
+click
+python-dotenv
+aiofiles
+httpx
+reportlab
