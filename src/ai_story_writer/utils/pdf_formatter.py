@@ -34,10 +34,10 @@ class ThemeBasedPDFFormatter:
         # Handle both GeneratedStory and AdvancedGeneratedStory
         if hasattr(story, 'original_genre'):
             # V1.3+ AdvancedGeneratedStory
-            display_genre = story.requirements.get_display_genre() if hasattr(story.requirements, 'get_display_genre') else story.genre.value
+            display_genre = story.requirements.get_display_genre() if hasattr(story.requirements, 'get_display_genre') else story.genre
         else:
             # V1.1/V1.2 GeneratedStory
-            display_genre = story.genre.value
+            display_genre = story.genre
         
         # Get theme configuration
         theme = self.theme_configs.get(story.genre, self.theme_configs[StoryGenre.LITERARY])
@@ -307,7 +307,7 @@ class ThemeBasedPDFFormatter:
         metadata_items = [
             f"<b>Title:</b> {story.title}",
             f"<b>Genre:</b> {display_genre.replace('_', ' ').replace('-', ' ').title()}",
-            f"<b>Length Category:</b> {story.requirements.length.value.title()} Fiction",
+            f"<b>Length Category:</b> {story.requirements.length.title()} Fiction",
             f"<b>Word Count:</b> {story.word_count} words",
             f"<b>Target Word Count:</b> {story.requirements.target_word_count} words"
         ]

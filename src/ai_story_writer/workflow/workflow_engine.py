@@ -158,9 +158,8 @@ class WorkflowEngine:
                         # Critical step failed, abort workflow
                         raise WorkflowError(f"Required step '{step.name}' failed: {e}")
                     else:
-                        # Optional step failed, continue with warning
-                        logger.warning(f"Optional step '{step.name}' failed, continuing workflow")
-                        context['results'][step.name] = None
+                        # NO OPTIONAL STEPS - ALL MUST SUCCEED
+                        raise StoryGenerationError(f"Critical workflow step '{step.name}' failed")
             
             # Finalize workflow
             workflow_state.stage = WorkflowStage.FINALIZATION

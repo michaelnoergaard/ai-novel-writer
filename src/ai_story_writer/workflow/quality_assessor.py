@@ -94,13 +94,9 @@ class QualityAssessor:
         try:
             logger.debug(f"Starting quality assessment for story: {story_title}")
             
-            # Basic content validation
+            # Basic content validation - must succeed
             if not story_content or not story_content.strip():
-                logger.warning("Empty story content provided for assessment")
-                return QualityMetrics(
-                    overall_score=0.0,
-                    assessment_method="failed_empty_content"
-                )
+                raise StoryGenerationError("Empty story content provided for assessment")
             
             # Perform individual assessments
             structure_score = self._assess_structure(story_content, requirements)
@@ -278,8 +274,7 @@ class QualityAssessor:
             return min(max(structure_score, 0.0), 10.0)
             
         except Exception as e:
-            logger.warning(f"Structure assessment failed: {e}")
-            return 5.0  # Default middle score
+            raise StoryGenerationError(f"Structure assessment failed: {e}")
     
     def _assess_coherence(self, content: str) -> float:
         """Assess story coherence and logical flow"""
@@ -307,8 +302,7 @@ class QualityAssessor:
             return min(max(coherence_score, 0.0), 10.0)
             
         except Exception as e:
-            logger.warning(f"Coherence assessment failed: {e}")
-            return 6.0
+            raise StoryGenerationError(f"Coherence assessment failed: {e}")
     
     def _assess_genre_compliance(self, content: str, genre: StoryGenre) -> float:
         """Assess adherence to genre conventions"""
@@ -336,8 +330,7 @@ class QualityAssessor:
             return min(max(compliance_score, 0.0), 10.0)
             
         except Exception as e:
-            logger.warning(f"Genre compliance assessment failed: {e}")
-            return 6.0
+            raise StoryGenerationError(f"Genre compliance assessment failed: {e}")
     
     def _assess_character_development(self, content: str, requirements: StoryRequirements) -> float:
         """Assess character development and depth"""
@@ -365,8 +358,7 @@ class QualityAssessor:
             return min(max(character_score, 0.0), 10.0)
             
         except Exception as e:
-            logger.warning(f"Character development assessment failed: {e}")
-            return 6.0
+            raise StoryGenerationError(f"Character development assessment failed: {e}")
     
     def _assess_pacing(self, content: str, requirements: StoryRequirements) -> float:
         """Assess story pacing and rhythm"""
@@ -392,8 +384,7 @@ class QualityAssessor:
             return min(max(pacing_score, 0.0), 10.0)
             
         except Exception as e:
-            logger.warning(f"Pacing assessment failed: {e}")
-            return 6.0
+            raise StoryGenerationError(f"Pacing assessment failed: {e}")
     
     def _assess_theme_integration(self, content: str, requirements: StoryRequirements) -> float:
         """Assess how well the theme is integrated into the story"""
@@ -420,8 +411,7 @@ class QualityAssessor:
             return min(max(theme_score, 0.0), 10.0)
             
         except Exception as e:
-            logger.warning(f"Theme integration assessment failed: {e}")
-            return 6.0
+            raise StoryGenerationError(f"Theme integration assessment failed: {e}")
     
     def _assess_word_count_accuracy(self, content: str, requirements: StoryRequirements) -> float:
         """Assess how accurately the word count matches the target"""
@@ -436,8 +426,7 @@ class QualityAssessor:
             return max(accuracy, 0.0)
             
         except Exception as e:
-            logger.warning(f"Word count accuracy assessment failed: {e}")
-            return 0.5
+            raise StoryGenerationError(f"Word count accuracy assessment failed: {e}")
     
     def _assess_grammar_quality(self, content: str) -> float:
         """Basic grammar quality assessment"""
@@ -465,8 +454,7 @@ class QualityAssessor:
             return min(max(grammar_score, 0.0), 10.0)
             
         except Exception as e:
-            logger.warning(f"Grammar quality assessment failed: {e}")
-            return 7.0
+            raise StoryGenerationError(f"Grammar quality assessment failed: {e}")
     
     def _assess_originality(self, content: str, requirements: StoryRequirements) -> float:
         """Assess story originality and creativity"""
@@ -484,8 +472,7 @@ class QualityAssessor:
             return min(max(originality_score, 0.0), 10.0)
             
         except Exception as e:
-            logger.warning(f"Originality assessment failed: {e}")
-            return 6.0
+            raise StoryGenerationError(f"Originality assessment failed: {e}")
     
     def _calculate_overall_score(self, scores: Dict[str, float], genre: StoryGenre) -> float:
         """Calculate weighted overall quality score"""
@@ -504,8 +491,7 @@ class QualityAssessor:
             return min(max(weighted_score, 0.0), 10.0)
             
         except Exception as e:
-            logger.warning(f"Overall score calculation failed: {e}")
-            return 6.0
+            raise StoryGenerationError(f"Overall score calculation failed: {e}")
     
     def _calculate_confidence(self, content: str, requirements: StoryRequirements) -> float:
         """Calculate confidence level in the assessment"""
@@ -526,5 +512,4 @@ class QualityAssessor:
             return min(max(confidence, 0.1), 1.0)
             
         except Exception as e:
-            logger.warning(f"Confidence calculation failed: {e}")
-            return 0.5
+            raise StoryGenerationError(f"Confidence calculation failed: {e}")
