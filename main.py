@@ -147,11 +147,12 @@ def generate(prompt: Optional[str], config: str, theme: Optional[str],
         output_cfg = cfg.get('output', {})
         final_output = output or output_cfg.get('output_file')
         
-        if final_output:
-            Path(final_output).write_text(story_text, encoding='utf-8')
-            click.echo(f"Story saved to: {final_output}")
-        else:
-            click.echo(story_text)
+        # Always save to file, use default if none specified
+        if not final_output:
+            final_output = "generated_story.txt"
+            
+        Path(final_output).write_text(story_text, encoding='utf-8')
+        click.echo(f"Story saved to: {final_output}")
         
         # Handle PDF export
         pdf_file = output_cfg.get('pdf_file')
