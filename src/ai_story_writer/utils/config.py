@@ -74,6 +74,11 @@ class ConfigurationError(StoryGenerationError):
     pass
 
 
+class WorkflowError(StoryGenerationError):
+    """Error in workflow execution"""
+    pass
+
+
 def setup_logging(level: str = "INFO") -> None:
     """Setup logging for the application"""
     logging.basicConfig(

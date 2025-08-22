@@ -13,9 +13,16 @@ import click
 from src.ai_story_writer.models import StoryRequirements, StoryGenre, StoryLength
 from src.ai_story_writer.utils import setup_logging, validate_environment, ConfigurationError, StoryGenerationError, export_story_to_pdf
 
-# Import latest version - V1.2 Enhanced
-from src.ai_story_writer.agents import generate_story_enhanced
-from src.ai_story_writer.models import GenerationMethod, ValidationLevel, EnhancedAgentConfig
+# Import latest version - V1.3 Workflow Orchestration
+try:
+    from src.ai_story_writer.agents.v13_story_agent import generate_story_v13
+    from src.ai_story_writer.models.v13_models import GenerationStrategy, WorkflowConfiguration
+    V13_AVAILABLE = True
+except ImportError:
+    # Fallback to V1.2
+    from src.ai_story_writer.agents import generate_story_enhanced
+    from src.ai_story_writer.models import GenerationMethod, ValidationLevel, EnhancedAgentConfig
+    V13_AVAILABLE = False
 
 
 def load_config(config_path: str = "config.toml") -> dict:
@@ -95,20 +102,41 @@ def generate(prompt: Optional[str], config: str, theme: Optional[str],
         click.echo(f"Error creating story requirements: {e}", err=True)
         sys.exit(1)
     
-    # Generate the story using V1.2 enhanced
+    # Generate the story using latest available version
     try:
         if cfg.get('output', {}).get('verbose', True):
-            click.echo("Generating story...")
+            version_info = "V1.3 workflow orchestration" if V13_AVAILABLE else "V1.2 enhanced"
+            click.echo(f"Generating story using {version_info}...")
         
-        gen_cfg = cfg.get('generation', {})
-        gen_method = GenerationMethod(gen_cfg.get('method', 'auto'))
-        validation_level = ValidationLevel(gen_cfg.get('validation_level', 'standard'))
-        config_obj = EnhancedAgentConfig(default_generation_method=gen_method)
-        
-        story = asyncio.run(generate_story_enhanced(requirements, gen_method, validation_level, config_obj))
+        if V13_AVAILABLE:
+            # Use V1.3 workflow orchestration
+            gen_cfg = cfg.get('generation', {})
+            workflow_cfg = cfg.get('workflow', {})
+            
+            strategy = GenerationStrategy(gen_cfg.get('method', 'adaptive'))
+            config_obj = WorkflowConfiguration(
+                default_strategy=GenerationStrategy(workflow_cfg.get('default_strategy', 'adaptive')),
+                max_workflow_time=workflow_cfg.get('max_workflow_time', 300),
+                enable_quality_enhancement=workflow_cfg.get('enable_quality_enhancement', True),
+                quality_threshold=workflow_cfg.get('quality_threshold', 7.0),
+                max_enhancement_iterations=workflow_cfg.get('max_enhancement_iterations', 2)
+            )
+            
+            story = asyncio.run(generate_story_v13(requirements, strategy, config_obj))
+        else:
+            # Fallback to V1.2
+            gen_cfg = cfg.get('generation', {})
+            gen_method = GenerationMethod(gen_cfg.get('method', 'auto'))
+            validation_level = ValidationLevel(gen_cfg.get('validation_level', 'standard'))
+            config_obj = EnhancedAgentConfig(default_generation_method=gen_method)
+            
+            story = asyncio.run(generate_story_enhanced(requirements, gen_method, validation_level, config_obj))
         
         if cfg.get('output', {}).get('verbose', True):
-            click.echo(f"✓ Story generated: '{story.title}' ({story.word_count} words)")
+            if V13_AVAILABLE and hasattr(story, 'quality_metrics'):
+                click.echo(f"✓ Story generated: '{story.title}' ({story.word_count} words, quality: {story.quality_metrics.overall_score:.1f})")
+            else:
+                click.echo(f"✓ Story generated: '{story.title}' ({story.word_count} words)")
         
         # Format output
         story_text = format_story_output(story, cfg.get('output', {}).get('verbose', True))
@@ -154,10 +182,23 @@ def format_story_output(story, include_metadata: bool = False) -> str:
     if include_metadata:
         lines.append(f"**Genre:** {story.genre.value.title()}")
         lines.append(f"**Word Count:** {story.word_count}")
-        lines.append(f"**Generation Method:** {story.generation_method.value}")
-        lines.append(f"**Generation Time:** {story.metadata.generation_time:.2f} seconds")
-        if story.requirements.theme:
+        
+        # V1.3 enhanced metadata
+        if hasattr(story, 'quality_metrics') and story.quality_metrics:
+            lines.append(f"**Quality Score:** {story.quality_metrics.overall_score:.1f}/10")
+            lines.append(f"**Generation Strategy:** {story.strategy_used}")
+            lines.append(f"**Generation Time:** {story.generation_time:.2f} seconds")
+            if hasattr(story, 'workflow_id'):
+                lines.append(f"**Workflow ID:** {story.workflow_id}")
+        # V1.2 metadata fallback
+        elif hasattr(story, 'generation_method'):
+            lines.append(f"**Generation Method:** {story.generation_method}")
+            if hasattr(story, 'metadata') and 'generation_time' in story.metadata:
+                lines.append(f"**Generation Time:** {story.metadata['generation_time']:.2f} seconds")
+        
+        if hasattr(story, 'requirements') and story.requirements and story.requirements.theme:
             lines.append(f"**Theme:** {story.requirements.theme}")
+        
         lines.append("")
         lines.append("---")
         lines.append("")

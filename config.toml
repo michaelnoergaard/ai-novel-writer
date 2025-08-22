@@ -9,13 +9,35 @@ theme = ""
 setting = ""
 
 [generation]
-# Generation method: auto, direct, outline
-method = "auto"
+# Generation method: auto, direct, outline, iterative, adaptive
+method = "adaptive"
 validation_level = "standard"
+
+[workflow]
+# V1.3 Workflow settings
+default_strategy = "adaptive"
+max_workflow_time = 300  # seconds
+enable_quality_enhancement = true
+quality_threshold = 7.0
+max_enhancement_iterations = 2
+
+[quality]
+# Quality assessment settings
+enable_real_time_monitoring = true
+quality_check_interval = 30  # seconds
+minimum_quality_score = 6.0
+enable_improvement_suggestions = true
+
+[performance]
+# Performance monitoring settings
+enable_metrics_collection = true
+metrics_retention_days = 30
+enable_performance_optimization = true
+tool_timeout_seconds = 60
 
 [output]
 # Output format and files
-verbose = false
+verbose = true
 format = "pdf"  # text, json, pdf
 output_file = ""
 pdf_file = "story.pdf"
