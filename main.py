@@ -10,13 +10,12 @@ from typing import Optional
 import tomllib
 
 import click
-from basic_models import StoryRequirements, StoryGenre, StoryLength
-from config import setup_logging, validate_environment, ConfigurationError, StoryGenerationError
-from pdf_formatter import export_story_to_pdf
+from src.ai_story_writer.models import StoryRequirements, StoryGenre, StoryLength
+from src.ai_story_writer.utils import setup_logging, validate_environment, ConfigurationError, StoryGenerationError, export_story_to_pdf
 
 # Import latest version - V1.2 Enhanced
-from enhanced_story_agent import generate_story_enhanced
-from enhanced_models import GenerationMethod, ValidationLevel, EnhancedAgentConfig
+from src.ai_story_writer.agents import generate_story_enhanced
+from src.ai_story_writer.models import GenerationMethod, ValidationLevel, EnhancedAgentConfig
 
 
 def load_config(config_path: str = "config.toml") -> dict:

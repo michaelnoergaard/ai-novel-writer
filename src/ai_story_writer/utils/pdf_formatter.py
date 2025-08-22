@@ -15,7 +15,7 @@ from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, PageBreak
 from reportlab.platypus.tableofcontents import TableOfContents
 from reportlab.lib.enums import TA_CENTER, TA_JUSTIFY, TA_LEFT
 
-from basic_models import GeneratedStory, StoryGenre
+from ..models.basic_models import GeneratedStory, StoryGenre
 
 
 class ThemeBasedPDFFormatter:

@@ -1,6 +1,6 @@
-# AI Short Story Writer - Version 1
+# AI Short Story Writer - Version 1.2
 
-An autonomous AI-powered short story generator using PydanticAI agents.
+An autonomous AI-powered short story generator using PydanticAI agents with enhanced tools and config-driven interface.
 
 ## Features
 
@@ -179,6 +179,30 @@ The system includes comprehensive error handling for:
 
 Logs are written to `ai_story_writer.log` and can be controlled via the `AI_WRITER_LOG_LEVEL` environment variable or the `-v` flag.
 
+## Project Structure
+
+```
+ai-novel-writer/
+├── main.py                    # Main CLI interface
+├── config.toml               # Configuration file
+├── src/ai_story_writer/      # Main package
+│   ├── agents/              # AI agents
+│   │   ├── simple_story_agent.py      # V1.1 basic agent
+│   │   ├── enhanced_story_agent.py    # V1.2 enhanced agent
+│   │   └── enhanced_dependencies.py   # V1.2 dependencies
+│   ├── models/              # Data models
+│   │   ├── basic_models.py            # Core models
+│   │   └── enhanced_models.py         # V1.2 enhanced models
+│   └── utils/               # Utilities
+│       ├── config.py                  # Configuration
+│       └── pdf_formatter.py           # PDF export
+├── docs/                    # Documentation
+│   ├── specs/               # Version specifications
+│   └── plans/               # Implementation plans
+├── examples/                # Example files and outputs
+└── tests/                   # Test files
+```
+
 ## Requirements
 
 - Python 3.11+
@@ -187,11 +211,11 @@ Logs are written to `ai_story_writer.log` and can be controlled via the `AI_WRIT
 
 ## Future Versions
 
-This is Version 1.1 of a planned 7-version development roadmap:
+This is Version 1.2 of a planned 7-version development roadmap:
 
 - **Version 1.0**: Single agent with direct OpenAI API
-- **Version 1.1**: PydanticAI agent framework implementation (current)
-- **Version 1.2**: Enhanced tools and structured output models
+- **Version 1.1**: PydanticAI agent framework implementation
+- **Version 1.2**: Enhanced tools and structured output models (current)
 - **Version 1.5**: Advanced quality assessment and multi-pass generation
 - **Version 2.0**: Agent delegation with master/worker pattern
 - **Version 3.0**: Multi-agent coordination with specialized agents

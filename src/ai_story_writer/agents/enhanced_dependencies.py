@@ -4,8 +4,8 @@ Extended dependencies with detailed guidelines and enhanced capabilities
 """
 
 from typing import Dict, List, Any
-from basic_models import StoryGenre, StoryLength
-from enhanced_models import ValidationLevel, GenerationMethod
+from ..models.basic_models import StoryGenre, StoryLength
+from ..models.enhanced_models import ValidationLevel, GenerationMethod
 
 
 class EnhancedStoryDependencies:

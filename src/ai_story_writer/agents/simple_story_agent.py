@@ -7,8 +7,8 @@ import asyncio
 import logging
 from typing import Dict, Any
 from pydantic_ai import Agent, RunContext
-from basic_models import StoryRequirements, GeneratedStory, StoryGenre, StoryLength
-from config import AgentConfig, StoryGenerationError, AgentError, ValidationError
+from ..models.basic_models import StoryRequirements, GeneratedStory, StoryGenre, StoryLength
+from ..utils.config import AgentConfig, StoryGenerationError, AgentError, ValidationError
 
 # Setup logging
 logger = logging.getLogger(__name__)

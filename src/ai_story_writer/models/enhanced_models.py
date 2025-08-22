@@ -9,7 +9,7 @@ from datetime import datetime
 from pydantic import BaseModel, Field
 
 # Import existing models to maintain compatibility
-from basic_models import StoryGenre, StoryLength, StoryRequirements, GeneratedStory
+from .basic_models import StoryGenre, StoryLength, StoryRequirements, GeneratedStory
 
 
 class GenerationMethod(str, Enum):

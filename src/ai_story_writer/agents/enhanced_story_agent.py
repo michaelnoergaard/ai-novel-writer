@@ -11,13 +11,13 @@ from datetime import datetime
 from pydantic_ai import Agent, RunContext
 
 # Import models and dependencies
-from basic_models import StoryRequirements, StoryGenre, StoryLength
-from enhanced_models import (
+from ..models.basic_models import StoryRequirements, StoryGenre, StoryLength
+from ..models.enhanced_models import (
     EnhancedGeneratedStory, StoryOutline, ValidationResult, GenerationMetadata,
     GenerationMethod, ValidationLevel, EnhancedAgentConfig
 )
-from enhanced_dependencies import EnhancedStoryDependencies
-from config import StoryGenerationError, AgentError, ValidationError
+from .enhanced_dependencies import EnhancedStoryDependencies
+from ..utils.config import StoryGenerationError, AgentError, ValidationError
 
 # Setup logging
 logger = logging.getLogger(__name__)
