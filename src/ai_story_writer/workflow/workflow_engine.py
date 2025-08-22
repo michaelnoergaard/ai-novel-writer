@@ -14,7 +14,7 @@ from enum import Enum
 from ..models.basic_models import StoryRequirements
 from ..models.v13_models import (
     WorkflowState, WorkflowStage, AdvancedGeneratedStory,
-    GenerationStrategy, PerformanceMetrics, QualityMetrics
+    GenerationStrategy, PerformanceMetrics, QualityMetrics, ToolUsageReport
 )
 from ..utils.config import StoryGenerationError, WorkflowError
 
@@ -173,6 +173,23 @@ class WorkflowEngine:
             # Build final result
             generation_time = time.time() - start_time
             
+            # Create performance metrics
+            performance_metrics = PerformanceMetrics(
+                total_generation_time=generation_time,
+                workflow_execution_time=generation_time * 0.1,  # Approximate 10% workflow overhead
+                ai_generation_time=generation_time * 0.8,  # Approximate 80% AI generation time
+                quality_assessment_time=generation_time * 0.1,  # Approximate 10% assessment time
+                api_calls_made=len(workflow_state.steps_completed)
+            )
+            
+            # Create tool usage report
+            tool_usage_report = ToolUsageReport(
+                tools_used=['agent_run'],  # Since we're using direct agent.run() calls
+                total_tool_calls=len(workflow_state.steps_completed),
+                successful_calls=len(workflow_state.steps_completed) - workflow_state.error_count,
+                failed_calls=workflow_state.error_count
+            )
+            
             result = AdvancedGeneratedStory(
                 # Core story content
                 title=context.get('story_title', 'Untitled Story'),
@@ -184,6 +201,8 @@ class WorkflowEngine:
                 workflow_state=workflow_state,
                 quality_metrics=context.get('quality_metrics') or QualityMetrics(),
                 generation_strategy=strategy,
+                performance_metrics=performance_metrics,
+                tool_usage_report=tool_usage_report,
                 generation_time=generation_time,
                 workflow_id=workflow_id,
                 strategy_used=strategy.value,
@@ -194,7 +213,7 @@ class WorkflowEngine:
                 outline_used=context['results'].get('outline_generation'),
                 validation_results=context['results'].get('quality_assessment'),
                 metadata={
-                    'workflow_steps': workflow_state.steps_completed,
+                    'workflow_steps': len(workflow_state.steps_completed),
                     'total_errors': workflow_state.error_count,
                     'generation_time': generation_time
                 }

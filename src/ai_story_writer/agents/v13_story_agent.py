@@ -89,8 +89,7 @@ class V13StoryAgent:
             retries=3
         )
         
-        # Register tools
-        self._register_tools()
+        # Note: Tools removed - using direct prompts instead
         
         logger.info("V13StoryAgent initialized with workflow orchestration")
     
@@ -158,7 +157,9 @@ class V13StoryAgent:
         )
     
     def _register_tools(self) -> None:
-        """Register tools with the PydanticAI agent"""
+        """Register tools with the PydanticAI agent - DISABLED"""
+        # Tools disabled - using direct prompts instead to avoid infinite loops
+        return
         
         @self.agent.tool
         async def analyze_story_requirements(
@@ -354,12 +355,36 @@ Improve the story while maintaining its core narrative and staying within approx
             logger.debug("Skipping outline generation for direct strategy")
             return None
         
-        # Generate outline using tool
-        outline = await self.agent.run_sync(
-            'generate_story_outline',
-            requirements=requirements,
-            deps=self.dependencies
-        )
+        # Build outline generation prompt
+        genre_guidelines = self.dependencies.genre_guidelines.get(requirements.genre, "")
+        
+        outline_prompt = f"""Create a detailed story outline for a {requirements.genre.value} story.
+
+Requirements:
+- Genre: {requirements.genre.value}
+- Target word count: {requirements.target_word_count}
+- Theme: {requirements.theme or 'Not specified'}
+- Setting: {requirements.setting or 'Not specified'}
+
+Guidelines:
+{genre_guidelines}
+
+Create an outline with:
+1. Opening: Character introduction and situation setup
+2. Rising Action: Conflict development and complications
+3. Climax: Peak moment of tension or revelation
+4. Resolution: Conclusion and character growth
+
+Format as a structured outline with clear sections."""
+        
+        # Generate outline using agent
+        result = await self.agent.run(outline_prompt, deps=self.dependencies)
+        
+        outline = {
+            'outline_content': result.data if hasattr(result, 'data') else str(result),
+            'structure': 'four_act',
+            'estimated_sections': 4
+        }
         
         logger.debug("Generated story outline")
         return outline
@@ -369,13 +394,74 @@ Improve the story while maintaining its core narrative and staying within approx
         requirements = context['requirements']
         outline = context['results'].get('outline_generation')
         
-        # Generate content using tool
-        content_result = await self.agent.run_sync(
-            'generate_story_content',
-            requirements=requirements,
-            outline=outline,
-            deps=self.dependencies
-        )
+        # Build generation prompt
+        genre_guidelines = self.dependencies.genre_guidelines.get(requirements.genre, "")
+        length_guidelines = self.dependencies.length_guidelines.get(requirements.length, "")
+        
+        content_prompt = f"""Write a complete {requirements.genre.value} short story.
+
+Requirements:
+- Genre: {requirements.genre.value}
+- Length: {requirements.length.value}
+- Target word count: {requirements.target_word_count} words
+- Theme: {requirements.theme or 'Not specified'}
+- Setting: {requirements.setting or 'Not specified'}
+
+Guidelines:
+{genre_guidelines}
+
+{length_guidelines}
+
+"""
+        
+        # Add outline if available
+        if outline and outline.get('outline_content'):
+            content_prompt += f"""\nOutline to follow:
+{outline['outline_content']}
+
+Use this outline as a guide but feel free to expand and develop the story naturally.
+"""
+        
+        content_prompt += """\n\nWrite a compelling, well-structured story that meets all requirements. Include a compelling title.
+
+Provide the story in this format:
+**Title:** [Your compelling title here]
+
+[Your complete story here]"""
+        
+        # Generate content using agent
+        result = await self.agent.run(content_prompt, deps=self.dependencies)
+        
+        # Parse the result to extract title and content
+        story_text = result.data if hasattr(result, 'data') else str(result)
+        
+        # Extract title and content
+        lines = story_text.strip().split('\n')
+        title = "Untitled Story"
+        content_start_idx = 0
+        
+        # Look for title in first few lines
+        for i, line in enumerate(lines[:5]):
+            if line.strip().startswith('**Title:**'):
+                title = line.replace('**Title:**', '').strip()
+                content_start_idx = i + 1
+                break
+            elif line.strip().startswith('Title:'):
+                title = line.replace('Title:', '').strip()
+                content_start_idx = i + 1
+                break
+        
+        # Get content (skip empty lines after title)
+        content_lines = lines[content_start_idx:]
+        while content_lines and not content_lines[0].strip():
+            content_lines = content_lines[1:]
+        
+        content = '\n'.join(content_lines) if content_lines else story_text
+        
+        content_result = {
+            'title': title,
+            'content': content
+        }
         
         # Update context with generated content
         context['story_title'] = content_result['title']
@@ -422,15 +508,63 @@ Improve the story while maintaining its core narrative and staying within approx
         story_content = context['story_content']
         story_title = context['story_title']
         
-        # Enhance using tool
-        enhanced_result = await self.agent.run_sync(
-            'enhance_story_quality',
-            story_content=story_content,
-            story_title=story_title,
-            quality_metrics=quality_metrics,
-            requirements=requirements,
-            deps=self.dependencies
-        )
+        # Build enhancement prompt
+        enhancement_prompt = f"""Enhance the quality of this {requirements.genre.value} story based on the quality assessment.
+
+Original Title: {story_title}
+
+Original Story:
+{story_content}
+
+Quality Assessment:
+- Overall Score: {quality_metrics.overall_score}/10
+- Structure Score: {quality_metrics.structure_score}/10
+- Coherence Score: {quality_metrics.coherence_score}/10
+- Character Development: {quality_metrics.character_development}/10
+- Pacing Quality: {quality_metrics.pacing_quality}/10
+- Genre Compliance: {quality_metrics.genre_compliance}/10
+- Theme Integration: {quality_metrics.theme_integration}/10
+
+Focus on improving the areas with lower scores while maintaining the story's core strengths.
+
+Provide the enhanced story in this format:
+**Title:** [Enhanced title if needed]
+
+[Enhanced story content]"""
+        
+        # Generate enhanced content using agent
+        result = await self.agent.run(enhancement_prompt, deps=self.dependencies)
+        
+        # Parse the result to extract title and content
+        enhanced_text = result.data if hasattr(result, 'data') else str(result)
+        
+        # Extract title and content
+        lines = enhanced_text.strip().split('\n')
+        enhanced_title = story_title  # Default to original title
+        content_start_idx = 0
+        
+        # Look for title in first few lines
+        for i, line in enumerate(lines[:5]):
+            if line.strip().startswith('**Title:**'):
+                enhanced_title = line.replace('**Title:**', '').strip()
+                content_start_idx = i + 1
+                break
+            elif line.strip().startswith('Title:'):
+                enhanced_title = line.replace('Title:', '').strip()
+                content_start_idx = i + 1
+                break
+        
+        # Get content (skip empty lines after title)
+        content_lines = lines[content_start_idx:]
+        while content_lines and not content_lines[0].strip():
+            content_lines = content_lines[1:]
+        
+        enhanced_content = '\n'.join(content_lines) if content_lines else enhanced_text
+        
+        enhanced_result = {
+            'title': enhanced_title,
+            'content': enhanced_content
+        }
         
         # Update context with enhanced content
         context['story_title'] = enhanced_result['title']
