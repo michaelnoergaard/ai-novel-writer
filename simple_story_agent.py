@@ -1,6 +1,6 @@
 """
-Simple Story Agent - Version 1 Implementation
-Single agent that generates complete short stories using PydanticAI
+Simple Story Agent - Version 1.1 Implementation
+Production-ready PydanticAI agent for generating complete short stories
 """
 
 import asyncio
@@ -31,49 +31,75 @@ class StoryDependencies:
         }
 
 
-# Create the simple story agent
+# Enhanced system prompt for V1.1
+ENHANCED_SYSTEM_PROMPT = """You are a professional short story writer with expertise in crafting compelling narratives.
+
+Your task is to generate complete, publishable short stories based on the given requirements.
+
+Key principles:
+- Create engaging characters with clear motivations and distinct voices
+- Develop a focused plot with a clear beginning, middle, and end
+- Use vivid, economical prose that serves the story
+- Ensure every element contributes to the overall effect
+- Follow genre conventions while maintaining originality
+- Stay within the specified word count range with precision
+- Integrate themes and settings naturally into the narrative
+
+Structure your stories with:
+1. An engaging opening that establishes character and situation
+2. Rising action that develops conflict and tension
+3. A climactic moment that resolves the main conflict
+4. A satisfying conclusion that provides closure
+
+Write in third person unless the genre specifically benefits from first person.
+Use present tense for immediacy unless past tense better serves the narrative.
+Ensure consistency in character voice, plot logic, and world-building throughout.
+
+Always use the available tools to get genre and length guidelines before writing."""
+
+# Create the enhanced story agent with retry configuration
 simple_story_agent = Agent(
     'openai:gpt-4o',
     deps_type=StoryDependencies,
-    result_type=str,
-    system_prompt="""You are a professional short story writer with expertise in crafting compelling narratives.
-    
-    Your task is to generate complete, publishable short stories based on the given requirements.
-    
-    Key principles:
-    - Create engaging characters with clear motivations
-    - Develop a focused plot with a clear beginning, middle, and end
-    - Use vivid, economical prose that serves the story
-    - Ensure every element contributes to the overall effect
-    - Follow genre conventions while maintaining originality
-    - Stay within the specified word count range
-    
-    Structure your stories with:
-    1. An engaging opening that establishes character and situation
-    2. Rising action that develops conflict and tension
-    3. A climactic moment that resolves the main conflict
-    4. A satisfying conclusion that provides closure
-    
-    Write in third person unless the genre specifically benefits from first person.
-    Use present tense for immediacy unless past tense better serves the narrative."""
+    system_prompt=ENHANCED_SYSTEM_PROMPT,
+    retries=3
 )
 
 
 @simple_story_agent.tool
 async def get_genre_guidelines(ctx: RunContext[StoryDependencies], genre: StoryGenre) -> str:
-    """Get writing guidelines for the specified genre"""
-    return ctx.deps.genre_guidelines.get(genre, "Follow general storytelling principles")
+    """Get comprehensive writing guidelines for the specified genre"""
+    logger.debug(f"Tool called: get_genre_guidelines for {genre.value}")
+    guidelines = ctx.deps.genre_guidelines.get(genre, "Follow general storytelling principles")
+    logger.debug(f"Returning guidelines for {genre.value}: {len(guidelines)} characters")
+    return guidelines
 
 
 @simple_story_agent.tool
 async def get_length_guidelines(ctx: RunContext[StoryDependencies], length: StoryLength) -> str:
-    """Get guidelines for the specified story length"""
-    return ctx.deps.length_guidelines.get(length, "Follow general short story structure")
+    """Get comprehensive guidelines for the specified story length"""
+    logger.debug(f"Tool called: get_length_guidelines for {length.value}")
+    guidelines = ctx.deps.length_guidelines.get(length, "Follow general short story structure")
+    logger.debug(f"Returning length guidelines for {length.value}: {len(guidelines)} characters")
+    return guidelines
 
 
 @simple_story_agent.tool
 async def validate_word_count(ctx: RunContext[StoryDependencies], content: str, target: int) -> Dict[str, Any]:
-    """Validate that the story meets word count requirements"""
+    """Validate that the story meets word count requirements with detailed feedback"""
+    logger.debug(f"Tool called: validate_word_count with target {target}")
+    
+    if not content or not content.strip():
+        logger.warning("validate_word_count called with empty content")
+        return {
+            "is_valid": False,
+            "actual_count": 0,
+            "target_count": target,
+            "min_acceptable": int(target * 0.9),
+            "max_acceptable": int(target * 1.1),
+            "error": "Empty content provided"
+        }
+    
     word_count = len(content.split())
     tolerance = 0.1  # Allow 10% variance
     min_words = int(target * (1 - tolerance))
@@ -81,13 +107,22 @@ async def validate_word_count(ctx: RunContext[StoryDependencies], content: str, 
     
     is_valid = min_words <= word_count <= max_words
     
-    return {
+    result = {
         "is_valid": is_valid,
         "actual_count": word_count,
         "target_count": target,
         "min_acceptable": min_words,
         "max_acceptable": max_words
     }
+    
+    if not is_valid:
+        if word_count < min_words:
+            result["feedback"] = f"Story is {min_words - word_count} words too short"
+        else:
+            result["feedback"] = f"Story is {word_count - max_words} words too long"
+    
+    logger.debug(f"Word count validation: {word_count}/{target} (valid: {is_valid})")
+    return result
 
 
 class SimpleStoryGenerator:
@@ -109,25 +144,30 @@ class SimpleStoryGenerator:
         
         try:
             # Generate the story using the agent
-            logger.debug("Calling story generation agent")
+            logger.info(f"Starting story generation with PydanticAI agent")
+            logger.debug(f"Prompt length: {len(prompt)} characters")
+            
             result = await simple_story_agent.run(
                 prompt,
                 deps=self.dependencies
             )
             
-            story_content = result.data
+            story_content = result.output
             if not story_content or len(story_content.strip()) < 50:
-                raise AgentError("Agent returned insufficient content")
+                raise AgentError("Agent returned insufficient content (less than 50 characters)")
+            
+            logger.debug(f"Generated story content: {len(story_content)} characters")
             
             # Generate a title
-            logger.debug("Generating story title")
+            logger.debug("Generating story title using agent")
             title = await self._generate_title(story_content, requirements)
+            logger.debug(f"Generated title: '{title}'")
             
             # Count words and validate
             word_count = len(story_content.split())
             self._validate_word_count(word_count, requirements.target_word_count)
             
-            logger.info(f"Story generation complete. Word count: {word_count}")
+            logger.info(f"Story generation successful - Title: '{title}', Words: {word_count}, Genre: {requirements.genre.value}")
             
             return GeneratedStory(
                 title=title,
@@ -137,10 +177,17 @@ class SimpleStoryGenerator:
                 requirements=requirements
             )
             
+        except StoryGenerationError:
+            # Re-raise our custom exceptions as-is
+            raise
+        except AgentError:
+            # Re-raise agent errors as-is
+            raise
+        except ValidationError:
+            # Re-raise validation errors as-is
+            raise
         except Exception as e:
-            logger.error(f"Story generation failed: {str(e)}")
-            if isinstance(e, (StoryGenerationError, AgentError, ValidationError)):
-                raise
+            logger.error(f"Unexpected error during story generation: {type(e).__name__}: {str(e)}")
             raise AgentError(f"Unexpected error during story generation: {str(e)}")
     
     def _validate_requirements(self, requirements: StoryRequirements) -> None:
@@ -206,12 +253,17 @@ class SimpleStoryGenerator:
 Generate only the title, nothing else."""
 
         try:
+            logger.debug("Generating title with agent")
             result = await simple_story_agent.run(
                 title_prompt,
                 deps=self.dependencies
             )
-            return result.data.strip().strip('"').strip("'")
-        except:
+            title = result.output.strip().strip('"').strip("'")
+            if not title:
+                raise AgentError("Agent returned empty title")
+            return title
+        except Exception as e:
+            logger.warning(f"Title generation failed: {e}. Using fallback title.")
             # Fallback title if generation fails
             return f"A {requirements.genre.value.title()} Story"
 

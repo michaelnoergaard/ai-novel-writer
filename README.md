@@ -187,12 +187,15 @@ Logs are written to `ai_story_writer.log` and can be controlled via the `AI_WRIT
 
 ## Future Versions
 
-This is Version 1 of a planned 4-version development roadmap:
+This is Version 1.1 of a planned 7-version development roadmap:
 
-- **Version 1**: Single agent (current)
-- **Version 2**: Agent delegation with master/worker pattern
-- **Version 3**: Multi-agent coordination with specialized agents
-- **Version 4**: Graph-based workflow with advanced features
+- **Version 1.0**: Single agent with direct OpenAI API
+- **Version 1.1**: PydanticAI agent framework implementation (current)
+- **Version 1.2**: Enhanced tools and structured output models
+- **Version 1.5**: Advanced quality assessment and multi-pass generation
+- **Version 2.0**: Agent delegation with master/worker pattern
+- **Version 3.0**: Multi-agent coordination with specialized agents
+- **Version 4.0**: Graph-based workflow with advanced features
 
 ## License
 

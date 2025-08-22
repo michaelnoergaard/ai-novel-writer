@@ -1,196 +1,144 @@
 """
-AI Short Story Writer - Version 1 CLI Interface
-Command-line interface for generating short stories using PydanticAI
+AI Short Story Writer - Simplified CLI Interface
+Configuration-driven story generation with minimal command-line options
 """
 
 import asyncio
 import sys
 from pathlib import Path
 from typing import Optional
+import tomllib
 
 import click
 from basic_models import StoryRequirements, StoryGenre, StoryLength
-from simple_agent_v1 import generate_story
 from config import setup_logging, validate_environment, ConfigurationError, StoryGenerationError
 from pdf_formatter import export_story_to_pdf
 
+# Import latest version - V1.2 Enhanced
+from enhanced_story_agent import generate_story_enhanced
+from enhanced_models import GenerationMethod, ValidationLevel, EnhancedAgentConfig
+
+
+def load_config(config_path: str = "config.toml") -> dict:
+    """Load configuration from TOML file"""
+    try:
+        with open(config_path, "rb") as f:
+            return tomllib.load(f)
+    except FileNotFoundError:
+        click.echo(f"Config file '{config_path}' not found. Using defaults.", err=True)
+        return {}
+    except Exception as e:
+        click.echo(f"Error loading config: {e}", err=True)
+        return {}
+
 
 @click.command()
-@click.option(
-    '--genre', '-g',
-    type=click.Choice(['literary', 'mystery', 'science_fiction', 'fantasy', 'romance']),
-    default='literary',
-    help='Genre of the story to generate'
-)
-@click.option(
-    '--length', '-l',
-    type=click.Choice(['flash', 'short']),
-    default='short',
-    help='Length category of the story'
-)
-@click.option(
-    '--words', '-w',
-    type=int,
-    default=2000,
-    help='Target word count (100-7500)'
-)
-@click.option(
-    '--theme', '-t',
-    type=str,
-    help='Optional theme for the story'
-)
-@click.option(
-    '--setting', '-s',
-    type=str,
-    help='Optional setting for the story'
-)
-@click.option(
-    '--output', '-o',
-    type=click.Path(),
-    help='Output file path (optional, defaults to stdout)'
-)
-@click.option(
-    '--pdf', '-p',
-    type=click.Path(),
-    help='Export to PDF file path (e.g., story.pdf)'
-)
-@click.option(
-    '--verbose', '-v',
-    is_flag=True,
-    help='Verbose output with generation details'
-)
-def generate(
-    genre: str,
-    length: str,
-    words: int,
-    theme: Optional[str],
-    setting: Optional[str],
-    output: Optional[str],
-    pdf: Optional[str],
-    verbose: bool
-):
-    """Generate a short story using AI agents.
+@click.argument('prompt', required=False)
+@click.option('--config', '-c', default='config.toml', help='Config file path')
+@click.option('--theme', '-t', help='Story theme (overrides config)')
+@click.option('--words', '-w', type=int, help='Word count (overrides config)')
+@click.option('--genre', '-g', help='Story genre (overrides config)')
+@click.option('--output', '-o', help='Output file (overrides config)')
+def generate(prompt: Optional[str], config: str, theme: Optional[str], 
+            words: Optional[int], genre: Optional[str], output: Optional[str]):
+    """Generate a story using configuration file settings.
     
-    This tool generates complete short stories with professional
-    formatting options including themed PDF export.
+    PROMPT: Optional story prompt or theme
     
     Examples:
-    
-        # Generate a basic literary short story
-        uv run main.py generate
-        
-        # Generate and export to themed PDF
-        uv run main.py generate -g mystery -w 2000 -p mystery_story.pdf
-        
-        # Generate with theme and save both text and PDF
-        uv run main.py generate -g fantasy -t "courage" -o story.txt -p story.pdf
-        
-        # Generate flash fiction with verbose output
-        uv run main.py generate -l flash -w 750 -v -p flash.pdf
+        uv run main_simple.py
+        uv run main_simple.py "A tale of courage"
+        uv run main_simple.py -t "mystery" -w 500
     """
     
-    # Setup logging
-    log_level = "DEBUG" if verbose else "INFO"
-    setup_logging(log_level)
+    # Load configuration
+    cfg = load_config(config)
+    
+    # Set up logging
+    try:
+        setup_logging()
+    except Exception as e:
+        click.echo(f"Logging setup failed: {e}", err=True)
     
     # Validate environment
     try:
         env_status = validate_environment()
-        if verbose:
+        if cfg.get('output', {}).get('verbose', True):
             click.echo(f"Environment validated: {env_status}")
     except ConfigurationError as e:
         click.echo(f"Configuration error: {e}", err=True)
-        click.echo("Please set required environment variables.", err=True)
         sys.exit(1)
     
-    # Validate word count
-    if words < 100 or words > 7500:
-        click.echo("Error: Word count must be between 100 and 7500", err=True)
-        sys.exit(1)
+    # Build story requirements from config + overrides
+    story_cfg = cfg.get('story', {})
     
-    # Validate word count against length category
-    if length == 'flash' and words > 1000:
-        click.echo("Warning: Flash fiction typically under 1000 words", err=True)
-    elif length == 'short' and words < 1000:
-        click.echo("Warning: Short stories typically 1000+ words", err=True)
+    # Use prompt as theme if provided
+    final_theme = prompt or theme or story_cfg.get('theme', '')
+    final_words = words or story_cfg.get('words', 1000)
+    final_genre = genre or story_cfg.get('genre', 'literary')
+    final_length = 'flash' if final_words <= 1000 else 'short'
     
-    if verbose:
-        click.echo(f"Generating {genre} {length} story...")
-        click.echo(f"Target word count: {words}")
-        if theme:
-            click.echo(f"Theme: {theme}")
-        if setting:
-            click.echo(f"Setting: {setting}")
-        click.echo()
+    if cfg.get('output', {}).get('verbose', True):
+        click.echo(f"Generating {final_genre} story ({final_words} words)")
+        if final_theme:
+            click.echo(f"Theme: {final_theme}")
     
-    # Create requirements
     try:
+        # Create story requirements
         requirements = StoryRequirements(
-            genre=StoryGenre(genre),
-            length=StoryLength(length),
-            target_word_count=words,
-            theme=theme,
-            setting=setting
+            genre=StoryGenre(final_genre),
+            length=StoryLength(final_length),
+            target_word_count=final_words,
+            theme=final_theme if final_theme else None,
+            setting=story_cfg.get('setting') if story_cfg.get('setting') else None
         )
     except Exception as e:
         click.echo(f"Error creating story requirements: {e}", err=True)
         sys.exit(1)
     
-    # Generate the story
+    # Generate the story using V1.2 enhanced
     try:
-        if verbose:
-            click.echo("Generating story... (this may take a minute)")
+        if cfg.get('output', {}).get('verbose', True):
+            click.echo("Generating story...")
         
-        story = asyncio.run(generate_story(requirements))
+        gen_cfg = cfg.get('generation', {})
+        gen_method = GenerationMethod(gen_cfg.get('method', 'auto'))
+        validation_level = ValidationLevel(gen_cfg.get('validation_level', 'standard'))
+        config_obj = EnhancedAgentConfig(default_generation_method=gen_method)
         
-        if verbose:
-            click.echo(f"Generation complete!")
-            click.echo(f"Title: {story.title}")
-            click.echo(f"Word count: {story.word_count}")
-            click.echo(f"Genre: {story.genre}")
-            click.echo("-" * 50)
+        story = asyncio.run(generate_story_enhanced(requirements, gen_method, validation_level, config_obj))
         
-        # Prepare output
-        story_text = format_story_output(story, verbose)
+        if cfg.get('output', {}).get('verbose', True):
+            click.echo(f"✓ Story generated: '{story.title}' ({story.word_count} words)")
+        
+        # Format output
+        story_text = format_story_output(story, cfg.get('output', {}).get('verbose', True))
+        
+        # Handle output
+        output_cfg = cfg.get('output', {})
+        final_output = output or output_cfg.get('output_file')
+        
+        if final_output:
+            Path(final_output).write_text(story_text, encoding='utf-8')
+            click.echo(f"Story saved to: {final_output}")
+        else:
+            click.echo(story_text)
         
         # Handle PDF export
-        if pdf:
-            pdf_path = Path(pdf)
+        pdf_file = output_cfg.get('pdf_file')
+        if pdf_file:
             try:
-                pdf_path.parent.mkdir(parents=True, exist_ok=True)
-                exported_path = export_story_to_pdf(story, pdf_path)
-                click.echo(f"PDF exported to: {exported_path}")
-                if verbose:
-                    click.echo(f"PDF features theme-based styling for {story.genre.value} genre")
+                export_story_to_pdf(story, pdf_file)
+                click.echo(f"PDF exported to: {pdf_file}")
             except Exception as e:
-                click.echo(f"Error exporting PDF: {e}", err=True)
-                if verbose:
-                    import traceback
-                    click.echo(traceback.format_exc(), err=True)
-                sys.exit(1)
+                click.echo(f"PDF export failed: {e}", err=True)
         
-        # Write to text file or stdout
-        if output:
-            output_path = Path(output)
-            try:
-                output_path.parent.mkdir(parents=True, exist_ok=True)
-                output_path.write_text(story_text, encoding='utf-8')
-                click.echo(f"Story saved to: {output_path}")
-            except Exception as e:
-                click.echo(f"Error saving to file: {e}", err=True)
-                sys.exit(1)
-        elif not pdf:  # Only show on stdout if no PDF was generated
-            click.echo(story_text)
-            
-    except StoryGenerationError as e:
-        click.echo(f"Story generation error: {e}", err=True)
-        sys.exit(1)
     except KeyboardInterrupt:
         click.echo("\nGeneration interrupted by user", err=True)
         sys.exit(1)
     except Exception as e:
-        click.echo(f"Unexpected error: {e}", err=True)
-        if verbose:
+        click.echo(f"Error: {e}", err=True)
+        if cfg.get('output', {}).get('verbose', True):
             import traceback
             click.echo(traceback.format_exc(), err=True)
         sys.exit(1)
@@ -207,10 +155,10 @@ def format_story_output(story, include_metadata: bool = False) -> str:
     if include_metadata:
         lines.append(f"**Genre:** {story.genre.value.title()}")
         lines.append(f"**Word Count:** {story.word_count}")
+        lines.append(f"**Generation Method:** {story.generation_method.value}")
+        lines.append(f"**Generation Time:** {story.metadata.generation_time:.2f} seconds")
         if story.requirements.theme:
             lines.append(f"**Theme:** {story.requirements.theme}")
-        if story.requirements.setting:
-            lines.append(f"**Setting:** {story.requirements.setting}")
         lines.append("")
         lines.append("---")
         lines.append("")
@@ -221,67 +169,5 @@ def format_story_output(story, include_metadata: bool = False) -> str:
     return "\n".join(lines)
 
 
-@click.group()
-@click.version_option(version="1.0.0", prog_name="AI Short Story Writer")
-def cli():
-    """AI Short Story Writer - Autonomous story generation with professional formatting
-    
-    This tool generates complete short stories using AI agents with
-    professional PDF export featuring theme-based styling.
-    Each story is crafted to be publication-ready with proper
-    structure, character development, and narrative flow.
-    """
-    pass
-
-
-@cli.command()
-def info():
-    """Display information about the story generator"""
-    click.echo("AI Short Story Writer - Version 1.0")
-    click.echo("=====================================")
-    click.echo()
-    click.echo("Supported Genres:")
-    for genre in StoryGenre:
-        click.echo(f"  - {genre.value}")
-    click.echo()
-    click.echo("Length Categories:")
-    click.echo("  - flash: 100-1000 words")
-    click.echo("  - short: 1000-7500 words")
-    click.echo()
-    click.echo("Example Usage:")
-    click.echo("  python main.py generate -g mystery -w 2500 -t 'betrayal'")
-
-
-@cli.command()
-def examples():
-    """Show example commands"""
-    examples_text = """
-Example Commands:
-
-Basic generation to console:
-  uv run main.py generate
-
-Generate mystery story as themed PDF:
-  uv run main.py generate -g mystery -w 2000 -p mystery_story.pdf
-
-Literary fiction with theme (PDF + text):
-  uv run main.py generate -g literary -t "redemption" -w 3000 -o story.txt -p story.pdf
-
-Flash fiction with verbose output:
-  uv run main.py generate -l flash -w 750 -v -p flash.pdf
-
-Fantasy with setting and theme:
-  uv run main.py generate -g fantasy -s "enchanted forest" -t "courage" -w 4000 -p fantasy.pdf
-
-Romance with professional PDF styling:
-  uv run main.py generate -g romance -w 2000 -p romance_story.pdf -v
-"""
-    click.echo(examples_text)
-
-
-# Add the generate command to the CLI group
-cli.add_command(generate)
-
-
 if __name__ == '__main__':
-    cli()
+    generate()

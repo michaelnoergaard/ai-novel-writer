@@ -1,0 +1,27 @@
+# AI Story Writer Configuration
+
+[story]
+# Default story settings
+genre = "literary"
+length = "short"
+words = 1000
+theme = ""
+setting = ""
+
+[generation]
+# Generation method: auto, direct, outline
+method = "auto"
+validation_level = "standard"
+
+[output]
+# Output format and files
+verbose = true
+format = "text"  # text, json, pdf
+output_file = ""
+pdf_file = ""
+
+[advanced]
+# Advanced settings (rarely changed)
+model = "openai:gpt-4o"
+temperature = 0.7
+max_retries = 3

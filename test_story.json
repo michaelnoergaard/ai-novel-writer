@@ -1,0 +1,35 @@
+{
+  "title": "Lantern of Courage: Elara's Quest",
+  "content": "In the quiet village of Elderglen, young Elara stood at the edge of the forest, heart racing yet resolved. A darkness plagued the woods, whispered to encroach upon their homes. Driven by an instinctive courage, Elara gripped her father's old lantern, its light flickering with her every step into the shadowed foliage.\n\nAs the mist thickened, shadows danced menacingly. Fear clawed at her resolve, but Elara pressed on for her kin's peace. Through sheer will, she reached the heart of the darkness, where the foul creature lurked. In a final, exalting moment, she raised the lantern high, its light piercing through, banishing the shadow.\n\nThe forest, now aglow with warmth and life, whispered its gratitude. Elara returned to her village, a hero not of might but of courage, having faced her fears and illuminating a path for others to follow.",
+  "word_count": 140,
+  "genre": "fantasy",
+  "generation_method": "outline",
+  "requirements": {
+    "genre": "fantasy",
+    "length": "short",
+    "target_word_count": 100,
+    "theme": "courage",
+    "setting": null
+  },
+  "metadata": {
+    "tools_used": [
+      "generate_story_outline(fantasy-short)",
+      "generate_story_outline(fantasy-short)"
+    ],
+    "generation_time": 14.283648014068604,
+    "outline_generated": true,
+    "validation_level": "standard"
+  },
+  "outline": {
+    "opening": "Engaging opening that establishes character and situation",
+    "rising_action": "Development of conflict and tension",
+    "climax": "Climactic moment that resolves main conflict",
+    "resolution": "Satisfying conclusion with thematic resolution",
+    "characters": [
+      "Protagonist with clear motivation"
+    ],
+    "themes": [
+      "courage"
+    ]
+  }
+}
