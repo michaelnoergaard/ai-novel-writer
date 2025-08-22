@@ -307,7 +307,7 @@ Title: {story_title}
 
 {story_content}
 
-Improve the story while maintaining its core narrative and staying within approximately {requirements.target_word_count} words."""
+Improve the story while maintaining its core narrative and targeting exactly {requirements.target_word_count} words. This word count is a firm requirement - expand the story if it's too short, or tighten it if it's too long."""
             
             result = await self.agent.run(enhancement_prompt, deps=ctx.deps)
             enhanced_content = result.data if hasattr(result, 'data') else str(result)
@@ -358,10 +358,10 @@ Improve the story while maintaining its core narrative and staying within approx
         # Build outline generation prompt
         genre_guidelines = self.dependencies.genre_guidelines.get(requirements.genre, "")
         
-        outline_prompt = f"""Create a detailed story outline for a {requirements.genre.value} story.
+        outline_prompt = f"""Create a detailed story outline for a {requirements.get_display_genre()} story.
 
 Requirements:
-- Genre: {requirements.genre.value}
+- Genre: {requirements.get_display_genre()}
 - Target word count: {requirements.target_word_count}
 - Theme: {requirements.theme or 'Not specified'}
 - Setting: {requirements.setting or 'Not specified'}
@@ -380,8 +380,25 @@ Format as a structured outline with clear sections."""
         # Generate outline using agent
         result = await self.agent.run(outline_prompt, deps=self.dependencies)
         
+        # Extract content from result
+        if hasattr(result, 'output'):
+            outline_text = result.output
+        elif hasattr(result, 'data'):
+            outline_text = result.data
+        elif hasattr(result, 'content'):
+            outline_text = result.content
+        else:
+            # Fallback - extract content from AgentRunResult
+            outline_text = str(result)
+            if 'AgentRunResult(' in outline_text and 'output=' in outline_text:
+                import re
+                match = re.search(r"output='(.*)'(?:\)$|, )", outline_text, re.DOTALL)
+                if match:
+                    outline_text = match.group(1)
+                    outline_text = outline_text.replace('\\n', '\n').replace('\\"', '"').replace("\\'", "'")
+        
         outline = {
-            'outline_content': result.data if hasattr(result, 'data') else str(result),
+            'outline_content': outline_text,
             'structure': 'four_act',
             'estimated_sections': 4
         }
@@ -398,10 +415,10 @@ Format as a structured outline with clear sections."""
         genre_guidelines = self.dependencies.genre_guidelines.get(requirements.genre, "")
         length_guidelines = self.dependencies.length_guidelines.get(requirements.length, "")
         
-        content_prompt = f"""Write a complete {requirements.genre.value} short story.
+        content_prompt = f"""Write a complete {requirements.get_display_genre()} short story.
 
 Requirements:
-- Genre: {requirements.genre.value}
+- Genre: {requirements.get_display_genre()}
 - Length: {requirements.length.value}
 - Target word count: {requirements.target_word_count} words
 - Theme: {requirements.theme or 'Not specified'}
@@ -422,18 +439,40 @@ Guidelines:
 Use this outline as a guide but feel free to expand and develop the story naturally.
 """
         
-        content_prompt += """\n\nWrite a compelling, well-structured story that meets all requirements. Include a compelling title.
+        content_prompt += f"""\n\nWrite a compelling, well-structured story that meets all requirements. Include a compelling title.
+
+CRITICAL WORD COUNT REQUIREMENT: You MUST write exactly {requirements.target_word_count} words. This is NOT a suggestion - it is a firm requirement that cannot be ignored. 
+- If your story is shorter than {requirements.target_word_count} words, you MUST expand it with more detail, dialogue, character development, or plot elements.
+- If your story approaches {requirements.target_word_count} words, continue writing until you reach exactly that count.
+- Do NOT write significantly shorter or longer than {requirements.target_word_count} words.
+
+This story must be {requirements.target_word_count} words in length. Count your words as you write.
 
 Provide the story in this format:
 **Title:** [Your compelling title here]
 
-[Your complete story here]"""
+[Your complete story here - exactly {requirements.target_word_count} words]"""
         
         # Generate content using agent
         result = await self.agent.run(content_prompt, deps=self.dependencies)
         
         # Parse the result to extract title and content
-        story_text = result.data if hasattr(result, 'data') else str(result)
+        # PydanticAI AgentRunResult should have the content in result.output
+        if hasattr(result, 'output'):
+            story_text = result.output
+        elif hasattr(result, 'data'):
+            story_text = result.data  
+        elif hasattr(result, 'content'):
+            story_text = result.content
+        else:
+            # Last resort - extract from string representation
+            story_text = str(result)
+            if 'AgentRunResult(' in story_text and 'output=' in story_text:
+                import re
+                match = re.search(r"output='(.*)'(?:\)$|, )", story_text, re.DOTALL)
+                if match:
+                    story_text = match.group(1)
+                    story_text = story_text.replace('\\n', '\n').replace('\\"', '"').replace("\\'", "'")
         
         # Extract title and content
         lines = story_text.strip().split('\n')
@@ -509,7 +548,7 @@ Provide the story in this format:
         story_title = context['story_title']
         
         # Build enhancement prompt
-        enhancement_prompt = f"""Enhance the quality of this {requirements.genre.value} story based on the quality assessment.
+        enhancement_prompt = f"""Enhance the quality of this {requirements.get_display_genre()} story based on the quality assessment.
 
 Original Title: {story_title}
 
@@ -527,16 +566,36 @@ Quality Assessment:
 
 Focus on improving the areas with lower scores while maintaining the story's core strengths.
 
+CRITICAL WORD COUNT REQUIREMENT: You MUST write exactly {requirements.target_word_count} words. This is NOT a suggestion - it is a firm requirement.
+- The enhanced story MUST be exactly {requirements.target_word_count} words long.
+- If the story is too short, expand it with more detail, dialogue, character development, or plot elements.
+- If the story is too long, carefully edit while preserving quality and hitting exactly {requirements.target_word_count} words.
+- Count your words as you write to ensure you hit exactly {requirements.target_word_count} words.
+
 Provide the enhanced story in this format:
 **Title:** [Enhanced title if needed]
 
-[Enhanced story content]"""
+[Enhanced story content - exactly {requirements.target_word_count} words]"""
         
         # Generate enhanced content using agent
         result = await self.agent.run(enhancement_prompt, deps=self.dependencies)
         
         # Parse the result to extract title and content
-        enhanced_text = result.data if hasattr(result, 'data') else str(result)
+        if hasattr(result, 'output'):
+            enhanced_text = result.output
+        elif hasattr(result, 'data'):
+            enhanced_text = result.data
+        elif hasattr(result, 'content'):
+            enhanced_text = result.content
+        else:
+            # Fallback - extract content from AgentRunResult
+            enhanced_text = str(result)
+            if 'AgentRunResult(' in enhanced_text and 'output=' in enhanced_text:
+                import re
+                match = re.search(r"output='(.*)'(?:\)$|, )", enhanced_text, re.DOTALL)
+                if match:
+                    enhanced_text = match.group(1)
+                    enhanced_text = enhanced_text.replace('\\n', '\n').replace('\\"', '"').replace("\\'", "'")
         
         # Extract title and content
         lines = enhanced_text.strip().split('\n')

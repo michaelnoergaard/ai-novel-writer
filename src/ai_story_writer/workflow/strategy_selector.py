@@ -35,7 +35,7 @@ class StrategySelector:
         # Configuration settings
         self.adaptive_threshold = self.config.get('adaptive_threshold', 0.8)
         self.simple_story_max_words = self.config.get('simple_story_max_words', 1000)
-        self.complex_story_min_words = self.config.get('complex_story_min_words', 3000)
+        self.complex_story_min_words = self.config.get('complex_story_min_words', 1500)
         self.enable_strategy_learning = self.config.get('enable_strategy_learning', True)
         
         # Genre complexity mapping
@@ -327,26 +327,29 @@ class StrategySelector:
         """Score the iterative improvement strategy"""
         
         # Iterative works best for high complexity and quality requirements
-        complexity_bonus = analysis.complexity_score * 0.5
-        quality_bonus = 0.3 if requirements.target_word_count >= self.complex_story_min_words else 0.1
+        complexity_bonus = analysis.complexity_score * 0.7  # Increased from 0.5
+        quality_bonus = 0.5 if requirements.target_word_count >= self.complex_story_min_words else 0.1  # Increased from 0.3
         
-        base_score = 0.6
-        score = base_score + complexity_bonus + quality_bonus
+        # Additional bonus for word counts above 1800 to ensure longer stories use iterative
+        length_bonus = 0.3 if requirements.target_word_count >= 1800 else 0.0
         
-        # Time penalty for longer process
-        time_penalty = 0.1
+        base_score = 0.7  # Increased from 0.6
+        score = base_score + complexity_bonus + quality_bonus + length_bonus
+        
+        # Reduced time penalty
+        time_penalty = 0.05  # Reduced from 0.1
         score -= time_penalty
         
         # Historical performance adjustment
         historical_bonus = self._get_historical_performance_bonus('iterative', requirements)
         score += historical_bonus
         
-        confidence = min(max(score, 0.3), 0.9)
+        confidence = min(max(score, 0.3), 0.95)  # Increased max confidence
         
         return {
             'score': score,
             'confidence': confidence,
-            'reasoning': "Iterative strategy provides highest quality through multiple refinement passes",
+            'reasoning': "Iterative strategy provides highest quality through multiple refinement passes, especially for longer stories",
             'estimated_time': 240.0 + requirements.target_word_count * 0.05,
             'estimated_quality': 8.0 + analysis.complexity_score * 0.5
         }
@@ -409,12 +412,14 @@ class StrategySelector:
             return 0.2  # Very simple
         elif word_count <= 1000:
             return 0.4  # Simple
-        elif word_count <= 3000:
+        elif word_count <= 1500:
             return 0.6  # Medium
+        elif word_count <= 3000:
+            return 0.8  # Complex - includes 2000 word stories
         elif word_count <= 5000:
-            return 0.8  # Complex
+            return 0.9  # Very complex
         else:
-            return 1.0  # Very complex
+            return 1.0  # Extremely complex
     
     def _analyze_theme_complexity(self, theme: Optional[str]) -> float:
         """Analyze complexity based on theme specificity"""

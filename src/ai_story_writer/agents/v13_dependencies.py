@@ -93,18 +93,23 @@ class V13StoryDependencies:
         # Enhanced length guidelines with workflow strategies
         self.length_guidelines = {
             StoryLength.FLASH: """
-            Tell a complete story in under 1000 words. Focus on a single moment, revelation, 
-            or emotional truth. Every word must count. Create immediate impact with efficient storytelling. 
-            Often works best with a twist, epiphany, or powerful emotional moment.
+            Tell a complete story meeting the EXACT target word count specified in requirements. 
+            Focus on a single moment, revelation, or emotional truth. Every word must count. 
+            Create immediate impact with efficient storytelling. Often works best with a twist, 
+            epiphany, or powerful emotional moment.
+            
+            **IMPORTANT:** Always write to meet the precise target word count specified in requirements.
             
             **Workflow Strategy:** Direct generation is typically most effective for flash fiction.
             Focus on precision and economy of language. Use quality assessment for impact measurement.
             """,
             
             StoryLength.SHORT: """
-            Develop a full narrative arc in 1000-7500 words. Include character development, 
-            plot progression, and satisfying resolution. Allow for subplot development and richer world-building. 
-            Can explore complex themes and character relationships.
+            Develop a full narrative arc meeting the EXACT target word count specified in requirements. 
+            Include character development, plot progression, and satisfying resolution. Allow for subplot 
+            development and richer world-building. Can explore complex themes and character relationships.
+            
+            **IMPORTANT:** Always write to meet the precise target word count - do not default to 1000 words.
             
             **Workflow Strategy:** Outline or iterative strategies recommended for longer pieces.
             Use comprehensive quality assessment and performance monitoring.

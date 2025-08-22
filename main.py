@@ -43,7 +43,7 @@ def load_config(config_path: str = "config.toml") -> dict:
 @click.option('--config', '-c', default='config.toml', help='Config file path')
 @click.option('--theme', '-t', help='Story theme (overrides config)')
 @click.option('--words', '-w', type=int, help='Word count (overrides config)')
-@click.option('--genre', '-g', help='Story genre (overrides config)')
+@click.option('--genre', '-g', help='Story genre - accepts any genre (sci-fi, cyberpunk, steampunk, etc.)')
 @click.option('--output', '-o', help='Output file (overrides config)')
 def generate(prompt: Optional[str], config: str, theme: Optional[str], 
             words: Optional[int], genre: Optional[str], output: Optional[str]):
@@ -52,9 +52,10 @@ def generate(prompt: Optional[str], config: str, theme: Optional[str],
     PROMPT: Optional story prompt or theme
     
     Examples:
-        uv run main_simple.py
-        uv run main_simple.py "A tale of courage"
-        uv run main_simple.py -t "mystery" -w 500
+        uv run main.py
+        uv run main.py "A tale of courage"
+        uv run main.py -g "sci-fi" -w 500 "Robot rebellion"
+        uv run main.py -g "cyberpunk" -t "neon dreams"
     """
     
     # Load configuration
@@ -96,7 +97,8 @@ def generate(prompt: Optional[str], config: str, theme: Optional[str],
             length=StoryLength(final_length),
             target_word_count=final_words,
             theme=final_theme if final_theme else None,
-            setting=story_cfg.get('setting') if story_cfg.get('setting') else None
+            setting=story_cfg.get('setting') if story_cfg.get('setting') else None,
+            original_genre=final_genre  # Preserve the original user input
         )
     except Exception as e:
         click.echo(f"Error creating story requirements: {e}", err=True)

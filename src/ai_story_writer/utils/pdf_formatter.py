@@ -16,6 +16,10 @@ from reportlab.platypus.tableofcontents import TableOfContents
 from reportlab.lib.enums import TA_CENTER, TA_JUSTIFY, TA_LEFT
 
 from ..models.basic_models import GeneratedStory, StoryGenre
+try:
+    from ..models.v13_models import AdvancedGeneratedStory
+except ImportError:
+    AdvancedGeneratedStory = None
 
 
 class ThemeBasedPDFFormatter:
@@ -24,8 +28,16 @@ class ThemeBasedPDFFormatter:
     def __init__(self):
         self.theme_configs = self._create_theme_configurations()
         
-    def export_to_pdf(self, story: GeneratedStory, output_path: Path) -> Path:
+    def export_to_pdf(self, story, output_path: Path) -> Path:
         """Export story to a professionally formatted PDF"""
+        
+        # Handle both GeneratedStory and AdvancedGeneratedStory
+        if hasattr(story, 'original_genre'):
+            # V1.3+ AdvancedGeneratedStory
+            display_genre = story.requirements.get_display_genre() if hasattr(story.requirements, 'get_display_genre') else story.genre.value
+        else:
+            # V1.1/V1.2 GeneratedStory
+            display_genre = story.genre.value
         
         # Get theme configuration
         theme = self.theme_configs.get(story.genre, self.theme_configs[StoryGenre.LITERARY])
@@ -44,7 +56,7 @@ class ThemeBasedPDFFormatter:
         story_elements = []
         
         # Add title page
-        story_elements.extend(self._create_title_page(story, theme))
+        story_elements.extend(self._create_title_page(story, theme, display_genre))
         
         # Add page break
         story_elements.append(PageBreak())
@@ -54,7 +66,7 @@ class ThemeBasedPDFFormatter:
         
         # Add footer page with metadata
         story_elements.append(PageBreak())
-        story_elements.extend(self._create_metadata_page(story, theme))
+        story_elements.extend(self._create_metadata_page(story, theme, display_genre))
         
         # Build PDF
         doc.build(story_elements)
@@ -106,7 +118,7 @@ class ThemeBasedPDFFormatter:
             }
         }
     
-    def _create_title_page(self, story: GeneratedStory, theme: Dict) -> list:
+    def _create_title_page(self, story, theme: Dict, display_genre: str) -> list:
         """Create an elegant title page"""
         elements = []
         
@@ -148,7 +160,7 @@ class ThemeBasedPDFFormatter:
             spaceAfter=1*inch
         )
         
-        genre_text = f"A {story.genre.value.replace('_', ' ').title()} Short Story"
+        genre_text = f"A {display_genre.replace('_', ' ').replace('-', ' ').title()} Short Story"
         elements.append(Paragraph(genre_text, genre_style))
         
         # Spacer
@@ -264,7 +276,7 @@ class ThemeBasedPDFFormatter:
         
         return elements
     
-    def _create_metadata_page(self, story: GeneratedStory, theme: Dict) -> list:
+    def _create_metadata_page(self, story, theme: Dict, display_genre: str) -> list:
         """Create a metadata page with story information"""
         elements = []
         
@@ -294,7 +306,7 @@ class ThemeBasedPDFFormatter:
         # Story details
         metadata_items = [
             f"<b>Title:</b> {story.title}",
-            f"<b>Genre:</b> {story.genre.value.replace('_', ' ').title()}",
+            f"<b>Genre:</b> {display_genre.replace('_', ' ').replace('-', ' ').title()}",
             f"<b>Length Category:</b> {story.requirements.length.value.title()} Fiction",
             f"<b>Word Count:</b> {story.word_count} words",
             f"<b>Target Word Count:</b> {story.requirements.target_word_count} words"

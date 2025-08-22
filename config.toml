@@ -2,11 +2,11 @@
 
 [story]
 # Default story settings
-genre = "literary"
+genre = "sci-fi"
 length = "short"
-words = 1000
-theme = ""
-setting = ""
+words = 2000
+theme = "conflict"
+setting = "astroid mining station"
 
 [generation]
 # Generation method: auto, direct, outline, iterative, adaptive
@@ -18,7 +18,7 @@ validation_level = "standard"
 default_strategy = "adaptive"
 max_workflow_time = 300  # seconds
 enable_quality_enhancement = true
-quality_threshold = 7.0
+quality_threshold = 8.5
 max_enhancement_iterations = 2
 
 [quality]
@@ -37,7 +37,7 @@ tool_timeout_seconds = 60
 
 [output]
 # Output format and files
-verbose = true
+verbose = false
 format = "pdf"  # text, json, pdf
 output_file = ""
 pdf_file = "story.pdf"
