@@ -521,10 +521,49 @@ Requirements: Complete story with clear beginning, middle, and end."""
     ) -> AdaptiveGenerationResult:
         """Create comprehensive adaptive generation result"""
         
+        # Get the base result data and ensure required fields are present
+        result_data = v14_result.dict()
+        
+        # Ensure workflow_state has required fields
+        if 'workflow_state' not in result_data or not result_data['workflow_state']:
+            from ..models.story_models import WorkflowState, WorkflowStage
+            result_data['workflow_state'] = WorkflowState(
+                workflow_id=generation_id,
+                stage=WorkflowStage.FINALIZATION,
+                progress=1.0,
+                current_step="adaptive_generation_complete"
+            ).dict()
+        else:
+            # Ensure existing workflow_state has required fields
+            ws = result_data['workflow_state']
+            if 'workflow_id' not in ws:
+                ws['workflow_id'] = generation_id
+            if 'stage' not in ws:
+                ws['stage'] = 'finalization'
+            if 'progress' not in ws:
+                ws['progress'] = 1.0
+            if 'current_step' not in ws:
+                ws['current_step'] = 'adaptive_generation_complete'
+        
+        # Ensure generation_metadata has required fields
+        if 'generation_metadata' not in result_data or not result_data['generation_metadata']:
+            from ..models.enhanced_models import GenerationMetadata, GenerationMethod
+            result_data['generation_metadata'] = GenerationMetadata(
+                generation_method=GenerationMethod.AUTO,
+                generation_time=efficiency_metrics.time_efficiency
+            ).dict()
+        else:
+            # Ensure existing generation_metadata has required fields
+            gm = result_data['generation_metadata']
+            if 'generation_method' not in gm:
+                gm['generation_method'] = 'auto'
+            if 'generation_time' not in gm:
+                gm['generation_time'] = efficiency_metrics.time_efficiency
+        
         # Create V1.5 adaptive result by extending V1.4 result
         adaptive_result = AdaptiveGenerationResult(
-            # Inherit all V1.4 fields
-            **v14_result.dict(),
+            # Use the fixed data with all required fields
+            **result_data,
             
             # V1.5 adaptive enhancements
             generation_predictions=predictions,
