@@ -13,8 +13,9 @@ import click
 from src.ai_story_writer.models import StoryRequirements, StoryGenre, StoryLength
 from src.ai_story_writer.utils import setup_logging, validate_environment, ConfigurationError, StoryGenerationError, export_story_to_pdf
 
-# Unified AI Story Writer - Single Application
-from src.ai_story_writer.agents.story_agent import generate_story
+# V1.6 Agent Foundation - Single Application with Agent Patterns  
+from src.ai_story_writer.agents.story_agent import StoryAgent
+from src.ai_story_writer.agents.agent_coordinator import AgentCoordinator
 from src.ai_story_writer.models.story_models import (
     AdaptiveGenerationConfig, AdaptiveGenerationResult, UserProfile, SystemContext, 
     AdaptationStrategy, PersonalizationIntensity, QualityConfig, GenerationStrategy, WorkflowConfiguration
@@ -221,15 +222,24 @@ def generate(prompt: Optional[str], config: str, theme: Optional[str],
             system_performance_trend="stable"
         )
         
-        story = asyncio.run(generate_story(
-            requirements=requirements,
-            strategy=strategy,
-            workflow_config=workflow_config,
-            quality_config=quality_config,
-            user_profile=user_profile,
-            system_context=system_context,
-            adaptive_config=adaptive_config
-        ))
+        # V1.6: Create agent-based generation system
+        async def run_agent_generation():
+            story_agent = StoryAgent(adaptive_config)
+            coordinator = AgentCoordinator()
+            
+            # Register agent with coordinator
+            await coordinator.register_agent(story_agent)
+            
+            # Generate story using agent pattern
+            result = await story_agent.generate_story(
+                requirements=requirements,
+                user_profile=user_profile,
+                system_context=system_context,
+                strategy=strategy
+            )
+            return result
+        
+        story = asyncio.run(run_agent_generation())
         
         # Display generation results
         if cfg.get('output', {}).get('verbose', True):

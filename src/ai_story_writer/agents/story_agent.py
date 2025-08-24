@@ -1,6 +1,7 @@
 """
-AI Story Writer - Unified Story Agent
-Consolidated story generation agent with workflow orchestration, quality enhancement, and adaptive intelligence.
+AI Story Writer - V1.6 Story Agent with Agent Foundation
+Consolidated story generation agent with workflow orchestration, quality enhancement, adaptive intelligence,
+and new agent abstraction patterns for multi-agent coordination.
 """
 
 import asyncio
@@ -11,6 +12,9 @@ from typing import Optional, Any, Dict, List
 from datetime import datetime
 
 from pydantic_ai import Agent, RunContext
+
+from .base_agent import BaseAgent, AgentCapability, AgentType, AgentMessage, AgentResult
+from .agent_coordinator import AgentCoordinator
 
 from ..models.story_models import (
     AdaptiveGenerationResult, AdaptiveGenerationConfig, QualityEnhancedResult, 
@@ -70,13 +74,22 @@ Your task is to generate complete, publishable short stories based on the given 
 Generate stories that are complete, engaging, and professionally crafted while leveraging all available AI capabilities for optimal results."""
 
 
-class StoryAgent:
+class StoryAgent(BaseAgent[StoryRequirements, AdaptiveGenerationResult]):
     """Unified Story Agent with all AI Story Writer capabilities"""
     
     def __init__(self, config: AdaptiveGenerationConfig):
         """Initialize unified story agent with all capabilities"""
+        # Initialize base agent
+        super().__init__(
+            agent_id="story_agent_v16",
+            name="AI Story Writer V1.6",
+            description="Unified story generation agent with adaptive intelligence and quality enhancement",
+            agent_type=AgentType.STORY_GENERATION
+        )
+        
         try:
             self.config = validate_adaptive_config(config)
+            self.coordinator = AgentCoordinator()
             
             # Initialize core components
             self.adaptive_engine = AdaptiveIntelligenceEngine(config)
@@ -88,10 +101,105 @@ class StoryAgent:
             self.generation_active = False
             self.current_workflow_id = None
             
+            # Register message handlers for agent coordination
+            self.register_operation("generate_story", self._handle_generate_story)
+            self.register_operation("assess_quality", self._handle_assess_quality)
+            self.register_operation("enhance_story", self._handle_enhance_story)
+            self.register_operation("get_capabilities", self._handle_get_capabilities)
+            
             logger.info("StoryAgent initialized with adaptive intelligence, quality enhancement, and workflow orchestration")
             
         except Exception as e:
             raise StoryGenerationError(f"Failed to initialize story agent: {e}")
+    
+    async def execute(self, request: StoryRequirements) -> AdaptiveGenerationResult:
+        """
+        Execute main story generation operation (BaseAgent interface implementation).
+        
+        Args:
+            request: Story requirements
+            
+        Returns:
+            Adaptive generation result
+        """
+        return await self.generate_story(request)
+    
+    def get_capabilities(self) -> List[AgentCapability]:
+        """
+        Get list of capabilities this agent provides (BaseAgent interface implementation).
+        
+        Returns:
+            List of agent capabilities
+        """
+        return [
+            AgentCapability(
+                name="story_generation",
+                description="Generate complete short stories with adaptive intelligence",
+                input_types=["StoryRequirements", "UserProfile", "SystemContext"],
+                output_types=["AdaptiveGenerationResult"],
+                dependencies=["adaptive_engine", "quality_engine", "workflow_engine"],
+                estimated_time=60.0
+            ),
+            AgentCapability(
+                name="quality_assessment", 
+                description="Assess story quality across 12 dimensions",
+                input_types=["str", "QualityConfig"],
+                output_types=["AdvancedQualityMetrics"],
+                dependencies=["quality_assessor"],
+                estimated_time=5.0
+            ),
+            AgentCapability(
+                name="story_enhancement",
+                description="Enhance story quality through multi-pass improvement",
+                input_types=["str", "AdvancedQualityMetrics"],
+                output_types=["QualityEnhancedResult"],
+                dependencies=["quality_engine"],
+                estimated_time=30.0
+            ),
+            AgentCapability(
+                name="adaptive_learning",
+                description="Learn from generation results to improve future performance",
+                input_types=["AdaptiveGenerationResult"],
+                output_types=["Dict"],
+                dependencies=["adaptive_engine"],
+                estimated_time=2.0
+            )
+        ]
+    
+    # Message handlers for agent coordination
+    async def _handle_generate_story(self, payload: Dict[str, Any]) -> Dict[str, Any]:
+        """Handle story generation request from coordinator"""
+        requirements = StoryRequirements(**payload.get("requirements", {}))
+        user_profile = UserProfile(**payload["user_profile"]) if payload.get("user_profile") else None
+        system_context = SystemContext(**payload["system_context"]) if payload.get("system_context") else None
+        strategy = GenerationStrategy(payload["strategy"]) if payload.get("strategy") else None
+        
+        result = await self.generate_story(requirements, user_profile, system_context, strategy)
+        return result.dict()
+    
+    async def _handle_assess_quality(self, payload: Dict[str, Any]) -> Dict[str, Any]:
+        """Handle quality assessment request"""
+        content = payload["content"]
+        quality_metrics = await self.quality_assessor.assess_story_quality(content)
+        return quality_metrics.dict()
+    
+    async def _handle_enhance_story(self, payload: Dict[str, Any]) -> Dict[str, Any]:
+        """Handle story enhancement request"""
+        content = payload["content"]
+        current_metrics = AdvancedQualityMetrics(**payload.get("current_metrics", {}))
+        
+        # Perform enhancement
+        enhanced_result = await self.quality_engine.enhance_story_quality(
+            story_content=content,
+            current_quality=current_metrics,
+            requirements=StoryRequirements(**payload.get("requirements", {}))
+        )
+        return enhanced_result.dict()
+    
+    async def _handle_get_capabilities(self, payload: Dict[str, Any]) -> Dict[str, Any]:
+        """Handle capabilities request"""
+        capabilities = self.get_capabilities()
+        return {"capabilities": [cap.dict() for cap in capabilities]}
     
     async def generate_story(
         self,
