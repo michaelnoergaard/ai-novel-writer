@@ -10,7 +10,7 @@ from typing import Dict, List, Optional, Any, Tuple
 from datetime import datetime
 
 from ..models.basic_models import StoryRequirements, StoryGenre
-from ..models.v13_models import QualityMetrics, ImprovementSuggestion
+from ..models.story_models import QualityMetrics, ImprovementSuggestion
 from ..utils.config import StoryGenerationError
 
 # Setup logging

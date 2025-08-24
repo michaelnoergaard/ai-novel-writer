@@ -9,7 +9,7 @@ from typing import Dict, List, Optional, Any, Tuple
 from datetime import datetime
 
 from ..models.basic_models import StoryRequirements, StoryGenre, StoryLength
-from ..models.v13_models import (
+from ..models.story_models import (
     GenerationStrategy, StrategyRecommendation, RequirementAnalysis
 )
 from ..utils.config import StoryGenerationError

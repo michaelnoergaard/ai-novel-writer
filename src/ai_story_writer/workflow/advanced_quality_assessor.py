@@ -1,5 +1,5 @@
 """
-V1.4 Advanced Quality Assessor
+Advanced Quality Assessor - V1.6 Unified
 Enhanced quality assessment with comprehensive 12-dimensional analysis
 """
 
@@ -12,7 +12,7 @@ from datetime import datetime
 from pydantic_ai import Agent, RunContext
 
 from ..models.basic_models import StoryRequirements
-from ..models.v14_models import (
+from ..models.story_models import (
     AdvancedQualityMetrics, QualityDimension, EnhancementStrategy,
     QualityConfig
 )

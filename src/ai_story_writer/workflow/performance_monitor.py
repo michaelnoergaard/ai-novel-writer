@@ -12,7 +12,7 @@ from typing import Dict, List, Optional, Any, Callable
 from datetime import datetime, timedelta
 from collections import defaultdict, deque
 
-from ..models.v13_models import PerformanceMetrics, WorkflowState, GenerationStrategy
+from ..models.story_models import PerformanceMetrics, WorkflowState, GenerationStrategy
 from ..utils.config import StoryGenerationError
 
 # Setup logging

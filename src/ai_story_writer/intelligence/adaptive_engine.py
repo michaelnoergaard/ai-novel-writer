@@ -1,5 +1,5 @@
 """
-AI Story Writer V1.5 - Adaptive Intelligence Engine
+AI Story Writer V1.6 - Adaptive Intelligence Engine
 Core adaptive intelligence coordination and orchestration.
 """
 
@@ -80,33 +80,33 @@ class AdaptiveIntelligenceEngine:
                 requirements, adapted_strategy, user_profile, predictions
             )
             
-            # Phase 4: Execute optimized generation with V1.4 engine
-            v14_result = await self._execute_optimized_generation(
+            # Phase 4: Execute optimized generation with unified engine
+            enhanced_result = await self._execute_optimized_generation(
                 requirements, adapted_strategy, personalized_config, generation_id
             )
             
             # Phase 5: Analyze results and learn
             efficiency_metrics = await self._analyze_generation_efficiency(
-                v14_result, predictions, start_time
+                enhanced_result, predictions, start_time
             )
             
             prediction_accuracy = await self._evaluate_prediction_accuracy(
-                predictions, v14_result
+                predictions, enhanced_result
             )
             
             # Phase 6: Update learning systems
             learning_contributions = await self._update_learning_systems(
-                requirements, v14_result, predictions, user_profile, generation_id
+                requirements, enhanced_result, predictions, user_profile, generation_id
             )
             
             # Phase 7: Generate optimization opportunities
             optimization_opportunities = await self._identify_optimization_opportunities(
-                v14_result, predictions, efficiency_metrics
+                enhanced_result, predictions, efficiency_metrics
             )
             
             # Phase 8: Create adaptive result
             adaptive_result = self._create_adaptive_result(
-                v14_result, predictions, adaptation_insights, personalization_record,
+                enhanced_result, predictions, adaptation_insights, personalization_record,
                 learning_contributions, efficiency_metrics, prediction_accuracy,
                 optimization_opportunities, generation_id
             )
@@ -291,10 +291,10 @@ class AdaptiveIntelligenceEngine:
         quality_config: QualityConfig,
         generation_id: str
     ) -> QualityEnhancedResult:
-        """Execute story generation with V1.4 engine using optimized configuration"""
+        """Execute story generation with unified engine using optimized configuration"""
         
         try:
-            # Optimize workflow configuration for V1.5
+            # Optimize workflow configuration for unified engine
             optimized_workflow_config = WorkflowConfiguration(
                 default_strategy=strategy,
                 max_workflow_time=self.config.workflow_config.max_workflow_time,
@@ -326,7 +326,7 @@ Requirements: Complete story with clear beginning, middle, and end."""
             # PydanticAI result might have different attribute names
             story_text = basic_story_result.data if hasattr(basic_story_result, 'data') else str(basic_story_result)
             
-            v14_result = await quality_engine.enhance_story(
+            enhanced_result = await quality_engine.enhance_story(
                 initial_story=story_text,
                 initial_title="Generated Story",  # Simple title for now
                 requirements=requirements,
@@ -335,7 +335,7 @@ Requirements: Complete story with clear beginning, middle, and end."""
             )
             
             logger.info(f"Quality engine execution completed for {generation_id}")
-            return v14_result
+            return enhanced_result
             
         except Exception as e:
             raise StoryGenerationError(f"Optimized generation execution failed: {e}")
@@ -509,7 +509,7 @@ Requirements: Complete story with clear beginning, middle, and end."""
     
     def _create_adaptive_result(
         self,
-        v14_result: QualityEnhancedResult,
+        enhanced_result: QualityEnhancedResult,
         predictions: GenerationPredictions,
         adaptation_insights: AdaptationInsights,
         personalization_record: PersonalizationRecord,
@@ -522,7 +522,7 @@ Requirements: Complete story with clear beginning, middle, and end."""
         """Create comprehensive adaptive generation result"""
         
         # Get the base result data and ensure required fields are present
-        result_data = v14_result.dict()
+        result_data = enhanced_result.dict()
         
         # Ensure workflow_state has required fields
         if 'workflow_state' not in result_data or not result_data['workflow_state']:
@@ -560,12 +560,12 @@ Requirements: Complete story with clear beginning, middle, and end."""
             if 'generation_time' not in gm:
                 gm['generation_time'] = efficiency_metrics.time_efficiency
         
-        # Create V1.5 adaptive result by extending V1.4 result
+        # Create adaptive result with unified model
         adaptive_result = AdaptiveGenerationResult(
             # Use the fixed data with all required fields
             **result_data,
             
-            # V1.5 adaptive enhancements
+            # Adaptive intelligence enhancements
             generation_predictions=predictions,
             adaptation_insights=adaptation_insights,
             personalization_applied=personalization_record,

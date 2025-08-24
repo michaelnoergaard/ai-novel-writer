@@ -1,5 +1,5 @@
 """
-V1.4 Quality Enhancement Engine
+Quality Enhancement Engine - V1.6 Unified
 Multi-pass story enhancement with quality-driven refinement and convergence detection
 """
 
@@ -11,12 +11,13 @@ from typing import Dict, List, Optional, Tuple, Any
 from uuid import uuid4
 
 from ..models.basic_models import StoryRequirements
-from ..models.v14_models import (
+from ..models.story_models import (
     AdvancedQualityMetrics, EnhancementStrategy, QualityDimension,
     EnhancementPass, QualityFeedback, GenerationInsights, ConvergenceMetrics,
     QualityImprovement, QualityEnhancedResult, QualityConfig,
-    EnhancedPerformanceMetrics, WorkflowState, GenerationMetadata
+    EnhancedPerformanceMetrics, WorkflowState, WorkflowStage
 )
+from ..models.enhanced_models import GenerationMetadata, GenerationMethod
 from .advanced_quality_assessor import AdvancedQualityAssessor
 from ..utils.config import StoryGenerationError
 
@@ -84,17 +85,14 @@ class QualityEnhancementEngine:
         
         logger.info(f"Initial quality score: {initial_quality.overall_score:.2f}")
         
-        # Initialize workflow state
+        # Initialize workflow state with unified model fields
         workflow_state = WorkflowState(
-            current_phase="quality_enhancement",
-            completed_phases=["initial_generation", "initial_assessment"],
-            remaining_phases=["enhancement_passes", "final_assessment"],
-            current_pass=0,
-            total_passes_planned=max_passes,
-            target_quality=target_quality,
-            current_quality=initial_quality.overall_score,
-            overall_progress=0.0,
-            phase_progress=0.0
+            workflow_id=generation_id,
+            stage=WorkflowStage.QUALITY_ASSESSMENT,
+            progress=0.0,
+            current_step="quality_enhancement_initial",
+            steps_completed=["initial_generation", "initial_assessment"],
+            steps_remaining=["enhancement_passes", "final_assessment"]
         )
         
         # Check if already meets target
@@ -121,8 +119,8 @@ class QualityEnhancementEngine:
             logger.info(f"Starting enhancement pass {pass_num}/{max_passes}")
             
             # Update workflow state
-            workflow_state.current_pass = pass_num
-            workflow_state.overall_progress = pass_num / max_passes
+            workflow_state.progress = pass_num / max_passes
+            workflow_state.current_step = f"enhancement_pass_{pass_num}"
             
             # Assess current quality
             current_quality = await self.quality_assessor.assess_comprehensive(
@@ -132,7 +130,6 @@ class QualityEnhancementEngine:
             # Check if target quality achieved
             if current_quality.overall_score >= target_quality:
                 logger.info(f"Target quality achieved in pass {pass_num}")
-                workflow_state.quality_achieved = True
                 break
             
             # Determine enhancement strategy
@@ -184,7 +181,6 @@ class QualityEnhancementEngine:
             # Update for next iteration
             current_content = enhanced_content
             current_title = enhanced_title
-            workflow_state.current_quality = enhanced_quality.overall_score
             
             logger.info(f"Pass {pass_num} completed. Quality: {current_quality.overall_score:.2f} → {enhanced_quality.overall_score:.2f}")
         
@@ -623,19 +619,13 @@ Provide the enhanced story in this format:
             enhancement_passes, final_quality, performance_metrics
         )
         
-        # Create generation metadata
+        # Create generation metadata with required fields
         generation_metadata = GenerationMetadata(
-            generation_id=generation_id,
-            version="1.4",
-            model_used="gpt-4o",  # Would be configurable
-            enhancement_enabled=len(enhancement_passes) > 0,
-            total_enhancement_passes=len(enhancement_passes),
-            strategies_used=[pass_obj.strategy_used for pass_obj in enhancement_passes],
-            initial_quality_score=enhancement_passes[0].quality_before.overall_score if enhancement_passes else final_quality.overall_score,
-            final_quality_score=final_quality.overall_score,
-            quality_improvement=final_quality.overall_score - (enhancement_passes[0].quality_before.overall_score if enhancement_passes else final_quality.overall_score),
-            total_generation_time=total_time,
-            total_tokens_used=performance_metrics.total_tokens_used
+            generation_method=GenerationMethod.AUTO,  # Using AUTO for quality enhancement 
+            generation_time=total_time,
+            tools_used=["quality_assessor", "story_enhancer"],
+            outline_generated=False,  # Quality enhancement doesn't generate outlines
+            retry_count=0
         )
         
         # Determine quality tier
@@ -659,7 +649,7 @@ Provide the enhanced story in this format:
             cache_utilization=cache_utilization,
             requirements=requirements,
             generation_metadata=generation_metadata,
-            target_quality_achieved=final_quality.overall_score >= workflow_state.target_quality,
+            target_quality_achieved=final_quality.overall_score >= (target_quality or self.config.target_quality_score),
             enhancement_successful=len(enhancement_passes) > 0,
             quality_tier=quality_tier
         )
@@ -898,7 +888,7 @@ Provide the enhanced story in this format:
     
     def _create_cache_report(self) -> "CacheUtilizationReport":
         """Create cache utilization report (placeholder for now)"""
-        from ..models.v14_models import CacheUtilizationReport
+        from ..models.story_models import CacheUtilizationReport
         
         return CacheUtilizationReport(
             cache_enabled=self.config.enable_generation_caching,

@@ -17,7 +17,7 @@ from reportlab.lib.enums import TA_CENTER, TA_JUSTIFY, TA_LEFT
 
 from ..models.basic_models import GeneratedStory, StoryGenre
 try:
-    from ..models.v13_models import AdvancedGeneratedStory
+    from ..models.story_models import AdvancedGeneratedStory
 except ImportError:
     AdvancedGeneratedStory = None
 
