@@ -1,9 +1,15 @@
-"""AI agents for story generation."""
+"""AI agents for story generation - V1.6 Agent Foundation"""
 
-from .simple_story_agent import generate_story
-from .enhanced_story_agent import generate_story_enhanced
+from .story_agent import StoryAgent
+from .base_agent import BaseAgent, AgentMessage, AgentResult, AgentCapability, AgentType
+from .agent_coordinator import AgentCoordinator
 
 __all__ = [
-    "generate_story",
-    "generate_story_enhanced"
+    "StoryAgent",
+    "BaseAgent", 
+    "AgentMessage",
+    "AgentResult", 
+    "AgentCapability",
+    "AgentType",
+    "AgentCoordinator"
 ]
