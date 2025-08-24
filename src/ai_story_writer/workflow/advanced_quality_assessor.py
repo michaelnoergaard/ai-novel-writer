@@ -217,10 +217,13 @@ class AdvancedQualityAssessor(QualityAssessor):
 
 Consider:
 - Naturalness and authenticity of speech
-- Character voice distinctiveness
+- Character voice distinctiveness  
 - Dialogue's role in advancing plot and revealing character
 - Balance between dialogue and narrative description
 - Effective use of subtext and implication
+
+Important: If the story contains no dialogue, return 5.0 (neutral score).
+If dialogue is present, evaluate its quality.
 
 Story to assess:
 {story}

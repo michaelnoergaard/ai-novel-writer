@@ -7,12 +7,13 @@ A production-ready tool for generating professional-quality short stories using 
 __version__ = "1.2.0"
 __author__ = "AI Story Writer Team"
 
-from .agents.enhanced_story_agent import generate_story_enhanced
-from .models.enhanced_models import EnhancedGeneratedStory, StoryRequirements, StoryGenre, StoryLength
+from .agents.story_agent import generate_story
+from .models.story_models import AdaptiveGenerationResult, StoryRequirements
+from .models.basic_models import StoryGenre, StoryLength
 
 __all__ = [
-    "generate_story_enhanced",
-    "EnhancedGeneratedStory", 
+    "generate_story",
+    "AdaptiveGenerationResult", 
     "StoryRequirements",
     "StoryGenre",
     "StoryLength"

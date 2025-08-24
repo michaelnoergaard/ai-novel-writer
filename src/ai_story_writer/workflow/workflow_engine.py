@@ -12,8 +12,8 @@ from typing import Dict, List, Optional, Any, Callable, Awaitable
 from enum import Enum
 
 from ..models.basic_models import StoryRequirements
-from ..models.v13_models import (
-    WorkflowState, WorkflowStage, AdvancedGeneratedStory,
+from ..models.story_models import (
+    WorkflowState, WorkflowStage, StoryResult,
     GenerationStrategy, PerformanceMetrics, QualityMetrics, ToolUsageReport
 )
 from ..utils.config import StoryGenerationError, WorkflowError
@@ -79,7 +79,7 @@ class WorkflowEngine:
         requirements: StoryRequirements,
         strategy: GenerationStrategy,
         progress_callback: Optional[Callable[[WorkflowState], None]] = None
-    ) -> AdvancedGeneratedStory:
+    ) -> StoryResult:
         """
         Execute a complete workflow for story generation
         

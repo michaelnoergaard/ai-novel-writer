@@ -13,10 +13,12 @@ import click
 from src.ai_story_writer.models import StoryRequirements, StoryGenre, StoryLength
 from src.ai_story_writer.utils import setup_logging, validate_environment, ConfigurationError, StoryGenerationError, export_story_to_pdf
 
-# V1.4 Quality Enhancement - ONLY VERSION SUPPORTED
-from src.ai_story_writer.agents.v14_story_agent import generate_story_v14
-from src.ai_story_writer.models.v14_models import QualityConfig, QualityEnhancedResult
-from src.ai_story_writer.models.v13_models import GenerationStrategy, WorkflowConfiguration
+# Unified AI Story Writer - Single Application
+from src.ai_story_writer.agents.story_agent import generate_story
+from src.ai_story_writer.models.story_models import (
+    AdaptiveGenerationConfig, AdaptiveGenerationResult, UserProfile, SystemContext, 
+    AdaptationStrategy, PersonalizationIntensity, QualityConfig, GenerationStrategy, WorkflowConfiguration
+)
 
 
 def load_config(config_path: str = "config.toml") -> dict:
@@ -32,16 +34,23 @@ def load_config(config_path: str = "config.toml") -> dict:
 @click.option('--words', '-w', type=int, help='Word count (overrides config)')
 @click.option('--genre', '-g', help='Story genre - accepts any genre (sci-fi, cyberpunk, steampunk, etc.)')
 @click.option('--output', '-o', help='Output file (overrides config)')
-# V1.4 Quality Enhancement Options
-@click.option('--quality-mode', is_flag=True, help='Enable enhanced quality feedback (V1.4)')
-@click.option('--target-quality', type=float, help='Set target quality threshold (0-10, V1.4)')
-@click.option('--max-passes', type=int, help='Maximum enhancement passes (V1.4)')
-@click.option('--show-trends', is_flag=True, help='Display quality improvement trends (V1.4)')
-@click.option('--no-enhancement', is_flag=True, help='Disable quality enhancement (V1.4)')
+# Adaptive Intelligence Options
+@click.option('--quality-mode', is_flag=True, help='Enable enhanced quality feedback')
+@click.option('--target-quality', type=float, help='Set target quality threshold (0-10)')
+@click.option('--max-passes', type=int, help='Maximum enhancement passes')
+@click.option('--show-trends', is_flag=True, help='Display quality improvement trends')
+@click.option('--no-enhancement', is_flag=True, help='Disable quality enhancement')
+@click.option('--adaptive-mode', type=click.Choice(['conservative', 'moderate', 'aggressive']), default='moderate', help='Adaptive intelligence mode')
+@click.option('--personalization', type=click.Choice(['minimal', 'moderate', 'comprehensive']), default='moderate', help='Personalization level')
+@click.option('--user-id', type=str, help='User ID for personalization')
+@click.option('--show-predictions', is_flag=True, help='Display predictive analytics')
+@click.option('--show-intelligence', is_flag=True, help='Display intelligence insights')
 def generate(prompt: Optional[str], config: str, theme: Optional[str], 
             words: Optional[int], genre: Optional[str], output: Optional[str],
             quality_mode: bool, target_quality: Optional[float], max_passes: Optional[int],
-            show_trends: bool, no_enhancement: bool):
+            show_trends: bool, no_enhancement: bool, adaptive_mode: str,
+            personalization: str, user_id: Optional[str], show_predictions: bool, 
+            show_intelligence: bool):
     """Generate a story using configuration file settings.
     
     PROMPT: Optional story prompt or theme
@@ -99,16 +108,21 @@ def generate(prompt: Optional[str], config: str, theme: Optional[str],
         click.echo(f"Error creating story requirements: {e}", err=True)
         sys.exit(1)
     
-    # Generate the story using V1.4 (ONLY VERSION SUPPORTED)
+    # Generate the story using unified AI Story Writer
     try:
         if cfg.get('output', {}).get('verbose', True):
-            click.echo(f"Generating story using V1.4 quality enhancement...")
+            click.echo(f"Generating story using unified AI Story Writer...")
             if quality_mode:
-                click.echo("Quality enhancement mode enabled - detailed feedback will be provided")
+                click.echo("Enhanced quality feedback mode enabled")
+            if show_predictions:
+                click.echo("Predictive analytics enabled")
+            if show_intelligence:
+                click.echo("Intelligence insights enabled")
         
         gen_cfg = cfg.get('generation', {})
         workflow_cfg = cfg.get('workflow', {})
         quality_enhancement_cfg = cfg.get('quality_enhancement', {})
+        adaptive_cfg = cfg.get('adaptive_intelligence', {})
         
         strategy = GenerationStrategy(gen_cfg.get('method', 'adaptive'))
         
@@ -155,23 +169,98 @@ def generate(prompt: Optional[str], config: str, theme: Optional[str],
             assessment_detail_level='comprehensive'
         )
         
-        story = asyncio.run(generate_story_v14(
+        # Create V1.5 adaptive configuration
+        adaptive_config = AdaptiveGenerationConfig(
+            quality_config=quality_config,
+            workflow_config=workflow_config,
+            
+            # V1.5 adaptive intelligence settings
+            adaptation_strategy=AdaptationStrategy(adaptive_mode),
+            personalization_intensity=PersonalizationIntensity(personalization),
+            enable_predictive_analytics=True,
+            enable_adaptive_learning=adaptive_cfg.get('enable_adaptive_learning', True),
+            enable_resource_optimization=True,
+            
+            # Learning configuration
+            learning_rate=adaptive_cfg.get('learning_rate', 0.1),
+            prediction_confidence_threshold=adaptive_cfg.get('prediction_confidence_threshold', 0.7),
+            adaptation_aggressiveness=adaptive_cfg.get('adaptation_aggressiveness', 0.5),
+            
+            # Performance settings
+            max_adaptation_overhead=adaptive_cfg.get('max_adaptation_overhead', 0.2),
+            enable_parallel_prediction=True,
+            cache_learning_data=True,
+            learning_history_window=adaptive_cfg.get('learning_history_window', 100)
+        )
+        
+        # Create user profile if user_id provided
+        user_profile = None
+        if user_id:
+            from datetime import datetime
+            from src.ai_story_writer.models.story_models import UserPreferences
+            
+            # Create basic user profile (would be loaded from storage in real implementation)
+            user_profile = UserProfile(
+                user_id=user_id,
+                preferences=UserPreferences(),
+                generation_history=[],
+                learning_data={},
+                profile_created=datetime.now(),
+                profile_updated=datetime.now(),
+                interaction_count=0,
+                satisfaction_history=[],
+                adaptation_effectiveness=0.0
+            )
+        
+        # Create system context
+        system_context = SystemContext(
+            current_load=0.3,  # Simulated system load
+            available_resources={"cpu": 0.8, "memory": 0.9},
+            active_learning_sessions=0,
+            cache_status={"enabled": True, "hit_rate": 0.4},
+            system_performance_trend="stable"
+        )
+        
+        story = asyncio.run(generate_story(
             requirements=requirements,
             strategy=strategy,
             workflow_config=workflow_config,
-            quality_config=quality_config
+            quality_config=quality_config,
+            user_profile=user_profile,
+            system_context=system_context,
+            adaptive_config=adaptive_config
         ))
         
-        # Display V1.4 generation results
+        # Display generation results
         if cfg.get('output', {}).get('verbose', True):
-            # V1.4 enhanced output only
+            # Adaptive intelligence output
             quality_summary = story.get_quality_summary()
+            intelligence_summary = story.get_intelligence_summary()
+            
             click.echo(f"✓ Story generated: '{story.title}' ({story.word_count} words)")
             click.echo(f"  Quality: {quality_summary['overall_score']:.1f}/10 ({quality_summary['quality_tier']})")
             
             if quality_summary['enhancement_passes'] > 0:
                 click.echo(f"  Enhancement: {quality_summary['enhancement_passes']} passes, +{quality_summary['total_improvement']:.1f} improvement")
                 click.echo(f"  Performance: {quality_summary['generation_time']:.1f}s, {quality_summary['tokens_used']} tokens")
+            
+            # Show adaptive intelligence insights
+            if story.adaptation_applied:
+                click.echo(f"  Adaptation: {intelligence_summary['adaptations']['effectiveness']:.2f} effectiveness, {intelligence_summary['adaptations']['strategy_adaptations']} adaptations")
+            
+            if show_predictions:
+                pred_summary = intelligence_summary['predictions']
+                click.echo(f"\n🔮 Predictions:")
+                click.echo(f"  Quality range: {pred_summary['quality_range'][0]:.1f}-{pred_summary['quality_range'][1]:.1f} (confidence: {pred_summary['confidence']:.2f})")
+                click.echo(f"  Accuracy score: {pred_summary['accuracy']:.1f}/10")
+            
+            if show_intelligence:
+                eff_summary = intelligence_summary['efficiency']
+                learn_summary = intelligence_summary['learning']
+                click.echo(f"\n🧠 Intelligence:")
+                click.echo(f"  Token efficiency: {eff_summary['token_efficiency']:.2f}, Time efficiency: {eff_summary['time_efficiency']:.2f}")
+                click.echo(f"  Cache hit rate: {eff_summary['cache_hit_rate']:.1%}")
+                click.echo(f"  Learning contributions: {learn_summary['contributions']}, Updates: {learn_summary['user_updates']}")
             
             # Show quality feedback if requested
             if quality_mode or show_trends:
@@ -183,6 +272,14 @@ def generate(prompt: Optional[str], config: str, theme: Optional[str],
                 
                 if story.quality_feedback.areas_for_improvement:
                     click.echo(f"  Areas for improvement: {', '.join(story.quality_feedback.areas_for_improvement[:2])}")
+                
+                # Show optimization opportunities
+                if story.optimization_opportunities:
+                    click.echo(f"\n{story.get_optimization_report()}")
+            
+            # Show satisfaction prediction
+            if user_profile:
+                click.echo(f"  Predicted satisfaction: {story.user_satisfaction_prediction:.1f}/10")
         
         # Format output
         story_text = format_story_output(story, cfg.get('output', {}).get('verbose', True))
